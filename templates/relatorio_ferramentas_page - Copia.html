@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Ferramentas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .chart-container {
+            width: 80%;
+            margin: auto;
+            margin-bottom: 30px;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Relatório de Ferramentas</h1>
+    <div class="chart-container">
+        <canvas id="myChart"></canvas> <!-- Gráfico de Colunas -->
+    </div>
+    <div class="chart-container">
+        <canvas id="pieChart"></canvas> <!-- Gráfico de Pizza -->
+    </div>
+    <div class="chart-container">
+        <canvas id="statusChart"></canvas> <!-- Gráfico de Status -->
+    </div>
+    <div class="chart-container">
+        <canvas id="ticketCountsChart"></canvas> <!-- Gráfico de Pizza para Contagem de Tickets e CSR -->
+    </div>
+    <div class="chart-container">
+        <canvas id="lineChart"></canvas> <!-- Gráfico de Linha -->
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gráfico de Colunas
+            fetch('/relatorio_ferramentas')
+                .then(response => response.json())
+                .then(data => {
+                    let ferramentas = data.map(item => item.ferramenta);
+                    let abertos = data.map(item => item.abertos);
+                    let fechados = data.map(item => item.fechados);
+
+                    var ctx = document.getElementById('myChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ferramentas,
+                            datasets: [{
+                                label: 'Abertos',
+                                data: abertos,
+                                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }, {
+                                label: 'Fechados',
+                                data: fechados,
+                                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: { beginAtZero: true }
+                            }
+                        }
+                    });
+                })
+                .catch(error => console.error('Erro ao obter dados:', error));
+
+            // Gráfico de Pizza
+            fetch('/pie_chart')
+                .then(response => response.json())
+                .then(data => {
+                    var ctx = document.getElementById('pieChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: data.labels,
+                            datasets: [{
+                                data: data.values,
+                                backgroundColor: data.colors
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(error => console.error('Erro ao obter dados para o gráfico de pizza:', error));
+
+            // Gráfico de Status
+            fetch('/status_chart')
+                .then(response => response.json())
+                .then(data => {
+                    var ctxStatus = document.getElementById('statusChart').getContext('2d');
+                    new Chart(ctxStatus, {
+                        type: 'pie',
+                        data: {
+                            labels: ['Aberto', 'Fechado'],
+                            datasets: [{
+                                data: data.statusData,
+                                backgroundColor: ['#36a2eb', '#ff6384']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(error => console.error('Erro ao obter dados para o gráfico de status:', error));
+
+            // Gráfico de Pizza para Contagem de Tickets e CSR
+            fetch('/ticket_counts_chart')
+                .then(response => response.json())
+                .then(data => {
+                    var ctxCounts = document.getElementById('ticketCountsChart').getContext('2d');
+                    new Chart(ctxCounts, {
+                        type: 'pie',
+                        data: {
+                            labels: data.labels,
+                            datasets: [{
+                                data: data.values,
+                                backgroundColor: data.colors
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(error => console.error('Erro ao obter dados para o gráfico de contagem de tickets e CSR:', error));
+
+            // Gráfico de Linha
+            fetch('/line_chart_data')
+                .then(response => response.json())
+                .then(data => {
+                    var ctxLine = document.getElementById('lineChart').getContext('2d');
+                    new Chart(ctxLine, {
+                        type: 'line',
+                        data: {
+                            labels: data.dates,
+                            datasets: [{
+                                label: 'Total IDs',
+                                data: data.total_ids,
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                fill: false,
+                                tension: 0.1
+                            }, {
+                                label: 'Total CSR',
+                                data: data.total_csr,
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                fill: false,
+                                tension: 0.1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    type: 'time',
+                                    time: {
+                                        unit: 'day',
+                                        tooltipFormat: 'DD/MM/YYYY'
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Data'
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Quantidade'
+                                    }
+                                }
+                            },
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                })
+                .catch(error => console.error('Erro ao obter dados para o gráfico de linha:', error));
+        });
+    </script>
+</body>
+</html>

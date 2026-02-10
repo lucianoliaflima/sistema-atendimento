@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de CSRs</title>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .chart-container {
+            width: 50%;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lista de CSRs</h1>
+
+    <!-- Gráfico -->
+    <div class="chart-container">
+        <canvas id="statusChart"></canvas>
+    </div>
+
+    <!-- Listagem -->
+    <table id="ticketsTable" class="display">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>CSR</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row['id'] }}</td>
+                <td>{{ row['csr'] }}</td>
+                <td>{{ row['status'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        $(document).ready(function() {
+            // Inicializa o DataTable
+            var table = $('#ticketsTable').DataTable({
+                "paging": true,
+                "searching": true,
+                "info": true,
+                "lengthChange": false
+            });
+
+            // Carrega os dados do gráfico
+            fetch('/csr_data')
+                .then(response => {
+                    if (!response.ok) throw new Error('Erro ao carregar dados do gráfico: ' + response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Dados recebidos do /csr_data:", data);
+                    if (!data.labels || !data.quantities) {
+                        console.error("Dados inválidos recebidos:", data);
+                        return;
+                    }
+
+                    var ctx = document.getElementById('statusChart').getContext('2d');
+                    var chart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.labels, // ["open", "closed", etc.]
+                            datasets: [{
+                                label: 'Quantidade de Tickets por Status',
+                                data: data.quantities,
+                                backgroundColor: ['#36A2EB', '#FF6384'],
+                                borderColor: ['#36A2EB', '#FF6384'],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: { beginAtZero: true }
+                            },
+                            onClick: function(event, elements) {
+                                console.log("Clique detectado no gráfico");
+                                if (elements.length > 0) {
+                                    var index = elements[0].index;
+                                    var status = data.labels[index];
+                                    console.log("Status selecionado:", status);
+                                    filterTableByStatus(status);
+                                } else {
+                                    console.log("Clique fora das barras");
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(error => console.error("Erro ao carregar dados do gráfico:", error));
+
+            // Função para filtrar a tabela por status
+            function filterTableByStatus(status) {
+                console.log("Filtrando tabela por status:", status);
+                var url = '/lista_csr?status=' + encodeURIComponent(status);
+                console.log("Redirecionando para:", url);
+                window.location.href = url; // Recarrega a página com o filtro
+            }
+        });
+    </script>
+</body>
+</html>

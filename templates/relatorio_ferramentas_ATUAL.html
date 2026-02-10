@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Ferramentas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
+        h1, h2 { text-align: center; color: #333; }
+        .chart-container { display: inline-block; width: 45%; margin: 10px; }
+        .chart-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; }
+        .chart-container.pie-chart { width: 300px; height: 300px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        .status-paused { color: #f0ad4e; font-weight: bold; }
+        .status-running { color: #5cb85c; font-weight: bold; }
+        .sla-sim { color: green; font-weight: bold; }
+        .sla-nao { color: red; font-weight: bold; }
+        .button { display: inline-block; padding: 10px 5px; margin: 20px 10px; font-size: 12px; color: #fff; background-color: #007bff; text-decoration: none; border-radius: 5px; text-align: center; width: 100px; cursor: pointer; }
+        .filter-container { text-align: center; margin-bottom: 20px; }
+        .table-filter { text-align: center; margin: 20px 0; }
+        
+        .truncate {
+            max-width: 250px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        #content-to-export { background-color: #fff; }
+
+        @media print {
+            .button, .filter-container, .table-filter { display: none; }
+            h1, h2 { page-break-after: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div id="content-to-export">
+        <a href="/" class="button">Voltar</a>
+        <button class="button" onclick="exportToPDF( )">Exportar para PDF</button>
+        
+        <div class="filter-container">
+            <label for="startDate">Data Início:</label>
+            <input type="date" id="startDate">
+            <label for="endDate">Data Fim:</label>
+            <input type="date" id="endDate">
+            <button class="button" onclick="applyDateFilter()">Filtrar</button>
+        </div>
+        
+        <div id="pdf-section-charts">
+            <h1>Relatório de Ferramentas</h1>
+            <div class="chart-wrapper">
+                <div class="chart-container"><canvas id="myChart"></canvas></div>
+                <div class="chart-container"><canvas id="myChartCsr"></canvas></div>
+                <div class="chart-container"><canvas id="lineChart"></canvas></div>
+                <div class="chart-container"><canvas id="lineChartClosed"></canvas></div>
+                <div class="chart-container pie-chart"><canvas id="ticketCountsChart"></canvas></div>
+                <div class="chart-container"><canvas id="priorityChart"></canvas></div>
+                <div class="chart-container pie-chart"><canvas id="priorityPieChart"></canvas></div>
+            </div>
+        </div>
+
+        <div id="pdf-section-table">
+            <h2 style="margin-top: 40px;">Relatório Detalhado de SLA</h2>
+            <div class="table-filter">
+                <label for="filterTool">Ferramenta:</label>
+                <select id="filterTool"><option value="">Todas</option></select>
+                <label for="filterPriority">Prioridade:</label>
+                <select id="filterPriority"><option value="">Todas</option></select>
+                <label for="filterStatus">Status:</label>
+                <select id="filterStatus"><option value="">Todos</option></select>
+                <button class="button" onclick="applyTableFilter()">Aplicar Filtro</button>
+            </div>
+            <table id="detailedSlaTable">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>OS</th><th>CSR</th><th>Usuário</th><th>Ferramenta</th><th>Prioridade</th>
+                        <th>Assunto</th><th>Criado em</th><th>Data de Fechamento</th><th>Status</th>
+                        <th>Status SLA</th><th>SLA Atendido</th><th>Tempo Efetivo</th>
+                    </tr>
+                </thead>
+                <tbody id="detailedSlaTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+        let detailedSlaData = [];
+
+        document.addEventListener('DOMContentLoaded', function() { loadAllData(); });
+        function loadAllData(startDate = '', endDate = '') { loadCharts(startDate, endDate); loadDetailedSLATable(startDate, endDate); }
+        function createBarChart(ctx, labels, datasets, options) { return new Chart(ctx, { type: 'bar', data: { labels, datasets }, options: { ...options, plugins: { title: { display: true, text: options.title || '' } } } }); }
+        function createLineChart(ctx, labels, datasets, options) { return new Chart(ctx, { type: 'line', data: { labels, datasets }, options }); }
+        function createPieChart(ctx, labels, datasets, options) { return new Chart(ctx, { type: 'pie', data: { labels, datasets }, options }); }
+        
+        function loadCharts(startDate = '', endDate = '') {
+            const urlParams = startDate && endDate ? `?start=${startDate}&end=${endDate}` : '';
+            Object.keys(charts).forEach(key => charts[key]?.destroy());
+            fetch(`/relatorio_ferramentas${urlParams}`).then(r => r.json()).then(data => { if (data.length) charts.myChart = createBarChart(document.getElementById('myChart').getContext('2d'), data.map(i => i.ferramenta), [{ label: 'Abertos', data: data.map(i => i.abertos), backgroundColor: 'rgba(54, 162, 235, 0.5)' }, { label: 'Fechados', data: data.map(i => i.fechados), backgroundColor: 'rgba(255, 99, 132, 0.5)' }], { title: 'Atendimento' }); });
+            fetch(`/relatorio_ferramentas_csr${urlParams}`).then(r => r.json()).then(data => { if (data.length) charts.myChartCsr = createBarChart(document.getElementById('myChartCsr').getContext('2d'), data.map(i => i.ferramenta), [{ label: 'Abertos', data: data.map(i => i.abertos), backgroundColor: 'rgba(54, 162, 235, 0.5)' }, { label: 'Fechados', data: data.map(i => i.fechados), backgroundColor: 'rgba(255, 99, 132, 0.5)' }], { title: 'CSR' }); });
+            fetch(`/ticket_counts_chart${urlParams}`).then(r => r.json()).then(data => { if (data.labels) charts.ticketCountsChart = createPieChart(document.getElementById('ticketCountsChart').getContext('2d'), data.labels, [{ data: data.values, backgroundColor: data.colors }], { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Contagem de Tickets e CSR' } } }); });
+            fetch(`/plot_line${urlParams}`).then(r => r.json()).then(data => { if (data.labels) charts.lineChart = createLineChart(document.getElementById('lineChart').getContext('2d'), data.labels, [{ label: 'CSR', data: data.csr_values, borderColor: 'rgba(75, 192, 192, 1)', fill: false }, { label: 'ID', data: data.id_values, borderColor: 'rgba(255, 99, 132, 1)', fill: false }], { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'CSR vs ID' } } }); });
+            fetch(`/plot_line_closed${urlParams}`).then(r => r.json()).then(data => { if (data.labels) charts.lineChartClosed = createLineChart(document.getElementById('lineChartClosed').getContext('2d'), data.labels, [{ label: 'CSR', data: data.csr_values, borderColor: 'rgba(75, 192, 192, 1)', fill: false }, { label: 'ID', data: data.id_values, borderColor: 'rgba(255, 99, 132, 1)', fill: false }], { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Fechamento ID/CSR' } } }); });
+            fetch(`/relatorio_prioridade${urlParams}`).then(r => r.json()).then(data => { if (data.length) charts.priorityChart = createBarChart(document.getElementById('priorityChart').getContext('2d'), data.map(i => i.prioridade), [{ label: 'Abertos', data: data.map(i => i.abertos), backgroundColor: 'rgba(54, 162, 235, 0.5)' }, { label: 'Fechados', data: data.map(i => i.fechados), backgroundColor: 'rgba(255, 99, 132, 0.5)' }], { title: 'Gráfico Prioridade' }); });
+            fetch(`/relatorio_prioridade_pizza${urlParams}`).then(r => r.json()).then(data => { if (data.labels) charts.priorityPieChart = createPieChart(document.getElementById('priorityPieChart').getContext('2d'), data.labels, [{ data: data.values, backgroundColor: data.colors }], { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Distribuição por Prioridade' } } }); });
+        }
+        
+        function loadDetailedSLATable(startDate = '', endDate = '') {
+            const urlParams = startDate && endDate ? `?start=${startDate}&end=${endDate}` : '';
+            fetch(`/relatorio_sla_detalhado${urlParams}`).then(response => response.json()).then(data => { detailedSlaData = data; populateFilters(data); applyTableFilter(); }).catch(error => console.error('Erro ao obter dados detalhados de SLA:', error));
+        }
+        
+        function applyTableFilter() {
+            const toolFilter = document.getElementById('filterTool').value;
+            const priorityFilter = document.getElementById('filterPriority').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const filteredData = detailedSlaData.filter(row => (!toolFilter || row.tool === toolFilter) && (!priorityFilter || row.priority === priorityFilter) && (!statusFilter || row.status === statusFilter));
+            const tbody = document.getElementById('detailedSlaTableBody');
+            tbody.innerHTML = '';
+            if (filteredData.length === 0) { tbody.innerHTML = `<tr><td colspan="13">Nenhum resultado encontrado.</td></tr>`; return; }
+            filteredData.forEach(row => {
+                const tr = document.createElement('tr');
+                const statusSlaClass = row.status === 'closed' ? '' : (row.status_sla === 'Pausado' ? 'status-paused' : 'status-running');
+                const slaAtendidoClass = row.sla_atendido === 'Sim' ? 'sla-sim' : (row.sla_atendido === 'Não' ? 'sla-nao' : '');
+                tr.innerHTML = `
+                    <td>${row.ticket_id}</td><td>${row.os || 'N/A'}</td><td>${row.csr || 'N/A'}</td>
+                    <td>${row.username}</td><td>${row.tool}</td><td>${row.priority}</td>
+                    <td><span class="truncate" title="${row.subject}">${row.subject}</span></td>
+                    <td>${row.created_at}</td><td>${row.closed_at}</td>
+                    <td>${row.status}</td><td class="${statusSlaClass}">${row.status === 'closed' ? 'Fechado' : row.status_sla}</td>
+                    <td class="${slaAtendidoClass}">${row.sla_atendido}</td><td><b>${row.time_diff}</b></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function populateFilters(data) {
+            const toolSelect = document.getElementById('filterTool');
+            const prioritySelect = document.getElementById('filterPriority');
+            const statusSelect = document.getElementById('filterStatus');
+            [...new Set(data.map(item => item.tool))].forEach(tool => { if (tool && !toolSelect.querySelector(`option[value="${tool}"]`)) toolSelect.add(new Option(tool, tool)); });
+            [...new Set(data.map(item => item.priority))].forEach(priority => { if (priority && !prioritySelect.querySelector(`option[value="${priority}"]`)) prioritySelect.add(new Option(priority, priority)); });
+            [...new Set(data.map(item => item.status))].forEach(status => { if (status && !statusSelect.querySelector(`option[value="${status}"]`)) statusSelect.add(new Option(status, status)); });
+        }
+        
+        function applyDateFilter() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            loadAllData(startDate, endDate);
+        }
+
+        function exportToPDF() {
+            console.log("Iniciando exportação para PDF...");
+            const element = document.getElementById('content-to-export');
+            const options = {
+                margin: 0.5,
+                filename: 'Relatorio_Dashboard.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: true },
+                jsPDF: { unit: 'in', format: 'a2', orientation: 'landscape' },
+                pagebreak: { mode: ['css', 'legacy'], before: '#pdf-section-table' }
+            };
+            
+            const buttonsToHide = element.querySelectorAll('.button, .filter-container, .table-filter');
+            buttonsToHide.forEach(el => el.style.display = 'none');
+
+            html2pdf().from(element).set(options).save().then(() => {
+                buttonsToHide.forEach(el => el.style.display = '');
+                console.log("PDF gerado com sucesso!");
+            }).catch(err => {
+                buttonsToHide.forEach(el => el.style.display = '');
+                console.error("Erro ao gerar PDF:", err);
+            });
+        }
+    </script>
+</body>
+</html>

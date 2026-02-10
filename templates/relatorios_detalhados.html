@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatórios Detalhados</title>
+</head>
+<body>
+    <h1>Relatórios Detalhados</h1>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Usuário</th>
+            <th>Ferramenta</th>
+            <th>Assunto</th>
+            <th>Status</th>
+            <th>Data de Criação</th>
+            <th>Data de Fechamento</th>
+        </tr>
+        {% for ticket in tickets %}
+        <tr>
+            <td>{{ ticket.id }}</td>
+            <td>{{ ticket.username }}</td>
+            <td>{{ ticket.tool }}</td>
+            <td>{{ ticket.subject }}</td>
+            <td>{{ ticket.status }}</td>
+            <td>{{ ticket.created_at }}</td>
+            <td>{{ ticket.closed_at if ticket.closed_at else 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

@@ -1,0 +1,700 @@
+<script>
+    let charts = {};
+    let detailedSlaData = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+        loadAllData();
+        const filterCheckboxes = document.querySelectorAll('.form-check-input');
+        filterCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateHorasUtilizadasChart);
+        });
+        document.getElementById('filterSearch').addEventListener('input', applyTableFilter);
+    });
+
+    function loadAllData(startDate = '', endDate = '') {
+        loadCharts(startDate, endDate); // Initialize charts with mock data or API data
+        loadDetailedSLATable(startDate, endDate);
+        loadTempoFechamentoChart(startDate, endDate);
+        carregarSlaFerramentas(startDate, endDate);
+    }
+
+    // Mock loadCharts function until real data is available
+    function loadCharts(startDate = '', endDate = '') {
+        // Mock data for testing
+        const mockAtendimentoData = {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+            datasets: [{
+                label: 'Atendimentos',
+                data: [10, 20, 15, 25],
+                backgroundColor: ['#2563eb', '#1d4ed8', '#10b981', '#ef4444']
+            }]
+        };
+        const mockCsrData = {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+            datasets: [{
+                label: 'CSRs',
+                data: [5, 15, 10, 20],
+                backgroundColor: ['#2563eb', '#1d4ed8', '#10b981', '#ef4444']
+            }]
+        };
+        const mockLineData = {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+            datasets: [{
+                label: 'CSR',
+                data: [5, 15, 10, 20],
+                borderColor: '#2563eb',
+                fill: false
+            }, {
+                label: 'OS',
+                data: [10, 20, 15, 25],
+                borderColor: '#ef4444',
+                fill: false
+            }]
+        };
+        const mockTicketCountsData = {
+            labels: ['Atendimento', 'CSR'],
+            datasets: [{
+                data: [60, 40],
+                backgroundColor: ['#2563eb', '#10b981']
+            }]
+        };
+        const mockPriorityData = {
+            labels: ['Alta', 'Média', 'Baixa'],
+            datasets: [{
+                label: 'Prioridade',
+                data: [10, 20, 15],
+                backgroundColor: ['#ef4444', '#f59e0b', '#10b981']
+            }]
+        };
+        const mockPriorityPieData = {
+            labels: ['Alta', 'Média', 'Baixa'],
+            datasets: [{
+                data: [10, 20, 15],
+                backgroundColor: ['#ef4444', '#f59e0b', '#10b981']
+            }]
+        };
+
+        // Initialize charts
+        if (charts.myChart) charts.myChart.destroy();
+        charts.myChart = createBarChart(document.getElementById('myChart').getContext('2d'), mockAtendimentoData.labels, mockAtendimentoData.datasets);
+
+        if (charts.myChartCsr) charts.myChartCsr.destroy();
+        charts.myChartCsr = createBarChart(document.getElementById('myChartCsr').getContext('2d'), mockCsrData.labels, mockCsrData.datasets);
+
+        if (charts.lineChart) charts.lineChart.destroy();
+        charts.lineChart = createLineChart(document.getElementById('lineChart').getContext('2d'), mockLineData.labels, mockLineData.datasets, { title: 'CSR vs OS' });
+
+        if (charts.tempoFechamentoChart) charts.tempoFechamentoChart.destroy();
+        charts.tempoFechamentoChart = createBarChart(document.getElementById('tempoFechamentoChart').getContext('2d'), ['Jan', 'Feb', 'Mar', 'Apr'], [{ label: 'Tempo', data: [2, 3, 1.5, 2.5], backgroundColor: '#2563eb' }]);
+
+        if (charts.ticketCountsChart) charts.ticketCountsChart.destroy();
+        charts.ticketCountsChart = createPieChart(document.getElementById('ticketCountsChart').getContext('2d'), mockTicketCountsData.labels, mockTicketCountsData.datasets, { title: 'Contagem de Atendimento e CSR' });
+
+        if (charts.priorityChart) charts.priorityChart.destroy();
+        charts.priorityChart = createBarChart(document.getElementById('priorityChart').getContext('2d'), mockPriorityData.labels, mockPriorityData.datasets, { title: 'Gráfico Prioridade' });
+
+        if (charts.priorityPieChart) charts.priorityPieChart.destroy();
+        charts.priorityPieChart = createPieChart(document.getElementById('priorityPieChart').getContext('2d'), mockPriorityPieData.labels, mockPriorityPieData.datasets, { title: 'Distribuição por Prioridade' });
+    }
+
+    function loadDetailedSLATable(startDate = '', endDate = '') {
+        const urlParams = startDate && endDate ? `?start=${startDate}&end=${endDate}` : '';
+        fetch(`/relatorio_sla_detalhado${urlParams}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro na resposta da rede: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                detailedSlaData = data;
+                populateFilters(data);
+                applyTableFilter();
+                const total = data.length;
+                const atendidos = data.filter(r => r.sla_atendido === 'Sim' || r.sla_atendido === 'Aguardando Versão').length;
+                const percentage = total > 0 ? (atendidos / total) * 100 : 0;
+                if (charts.slaGauge) charts.slaGauge.destroy();
+                charts.slaGauge = createGaugeChart(document.getElementById('slaGauge').getContext('2d'), percentage);
+                updateHorasUtilizadasChart();
+            })
+            .catch(error => {
+                console.error('Erro ao obter dados detalhados de SLA:', error);
+                const chartContainer = document.getElementById('slaGauge').parentElement;
+                chartContainer.innerHTML = '<p class="text-secondary text-center">Erro ao carregar o gráfico de SLA. Por favor, tente novamente mais tarde.</p>';
+                if (charts.horasUtilizadasChart) {
+                    charts.horasUtilizadasChart.destroy();
+                }
+                document.getElementById('totalHorasDisplay').textContent = 'Total: 0 horas';
+                const horasChartContainer = document.getElementById('horasUtilizadasChart').parentElement;
+                horasChartContainer.innerHTML = '<p class="text-secondary text-center mt-5">Erro ao carregar dados de horas.</p>';
+            });
+    }
+
+    function parseTimeToHours(timeString) {
+        if (!timeString || timeString === '-' || timeString === 'N/A') {
+            return 0;
+        }
+        const timeMatch = timeString.match(/^(\d+):(\d{2})$/);
+        if (timeMatch) {
+            const hours = parseInt(timeMatch[1], 10) || 0;
+            const minutes = parseInt(timeMatch[2], 10) || 0;
+            return hours + (minutes / 60);
+        }
+        const parts = timeString.split(' ');
+        let totalHours = 0;
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            if (part.endsWith('d')) {
+                const days = parseFloat(part) || 0;
+                totalHours += days * 24;
+            } else if (part.endsWith('h')) {
+                const hours = parseFloat(part) || 0;
+                totalHours += hours;
+            } else if (part.endsWith('m')) {
+                const minutes = parseFloat(part) || 0;
+                totalHours += minutes / 60;
+            }
+        }
+        return totalHours;
+    }
+
+    function formatDecimalToTime(decimalHours) {
+        const hours = Math.floor(decimalHours);
+        const minutes = Math.round((decimalHours - hours) * 60);
+        return `${hours} horas e ${minutes} minutos`;
+    }
+
+    function updateHorasUtilizadasChart() {
+        const checkedFilters = Array.from(document.querySelectorAll('.form-check-input:checked')).map(cb => cb.value);
+        let filteredHoursData = detailedSlaData.filter(row => {
+            if (checkedFilters.length === 0) {
+                return true;
+            }
+            let hasValue = false;
+            checkedFilters.forEach(filter => {
+                if (row[filter] && row[filter] !== 'N/A') {
+                    hasValue = true;
+                }
+            });
+            return hasValue;
+        });
+
+        if (charts.horasUtilizadasChart) {
+            charts.horasUtilizadasChart.destroy();
+        }
+
+        const allTools = [...new Set(filteredHoursData.map(row => row.tool).filter(tool => tool))];
+        const toolHours = {};
+        allTools.forEach(tool => {
+            toolHours[tool] = 0;
+        });
+
+        filteredHoursData.forEach(row => {
+            const hours = parseTimeToHours(row.time_diff);
+            if (toolHours[row.tool] !== undefined) {
+                toolHours[row.tool] += hours;
+            }
+        });
+
+        const labels = Object.keys(toolHours).sort();
+        const values = labels.map(label => toolHours[label]);
+        const totalHours = values.reduce((a, b) => a + b, 0);
+        document.getElementById('totalHorasDisplay').textContent = `Total: ${formatDecimalToTime(totalHours)}`;
+
+        const ctx = document.getElementById('horasUtilizadasChart').getContext('2d');
+        const colors = labels.map((_, i) => `hsl(${i * 360 / labels.length}, 70%, 50%)`);
+        charts.horasUtilizadasChart = createBarChart(ctx, labels, [{
+            label: 'Horas Utilizadas',
+            data: values,
+            backgroundColor: colors,
+            borderWidth: 2,
+            borderColor: '#ffffff'
+        }], {
+            title: '',
+            tooltipCallbacks: {
+                label: function(context) {
+                    const decimalHours = context.parsed.y;
+                    const hours = Math.floor(decimalHours);
+                    const minutes = Math.round((decimalHours - hours) * 60);
+                    return `${context.label}: ${hours}h ${minutes}m`;
+                }
+            }
+        });
+    }
+
+    function createBarChart(ctx, labels, datasets, options = {}) {
+        const maxValue = Math.max(...datasets.flatMap(d => d.data));
+
+        return new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: datasets },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: !!options.title,
+                        text: options.title
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: Math.ceil(maxValue / 5),
+                            callback: function(value) { return value; }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createLineChart(ctx, labels, datasets, options) {
+        return new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                ...options,
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: options.title || '',
+                        font: { size: 16, weight: 'bold' },
+                        color: '#1e293b'
+                    },
+                    legend: { labels: { font: { size: 12 }, color: '#64748b' } }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+                    x: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } }
+                }
+            }
+        });
+    }
+
+    function createPieChart(ctx, labels, datasets, options) {
+        return new Chart(ctx, {
+            type: 'pie',
+            data: { labels, datasets },
+            options: {
+                ...options,
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: options.title || '',
+                        font: { size: 16, weight: 'bold' },
+                        color: '#1e293b'
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 12 }, color: '#64748b', padding: 20 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: options.tooltipCallbacks?.label || function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.parsed.toFixed(2);
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createGaugeChart(ctx, percentage) {
+        const safePercentage = Math.max(0, Math.min(100, percentage));
+        const ranges = [
+            { label: 'Insuficiente', value: 85, color: '#ef4444' },
+            { label: 'Regular', value: 5, color: '#f59e0b' },
+            { label: 'Bom', value: 6, color: '#eab308' },
+            { label: 'Excelente', value: 4, color: '#22c55e' }
+        ];
+        const labels = ranges.map(r => r.label);
+        const data = ranges.map(r => r.value);
+        const colors = ranges.map(r => r.color);
+        return new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data,
+                    backgroundColor: colors,
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
+                    cutout: '75%',
+                    circumference: 180,
+                    rotation: 270
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            font: { size: 11 },
+                            color: '#64748b',
+                            padding: 15,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: { enabled: false }
+                },
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 2000,
+                    easing: 'easeOutQuart'
+                }
+            },
+            plugins: [{
+                id: 'needle',
+                afterDraw: (chart) => {
+                    const { ctx: chartCtx, chartArea: { width, height } } = chart;
+                    const cx = width / 2;
+                    const cy = height * 0.9;
+                    const radius = Math.min(width, height) / 2 * 0.7;
+                    const angle = Math.PI * (safePercentage / 100);
+                    const needleX = cx + radius * Math.cos(Math.PI - angle);
+                    const needleY = cy - radius * Math.sin(Math.PI - angle);
+                    chartCtx.save();
+                    chartCtx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                    chartCtx.shadowBlur = 4;
+                    chartCtx.shadowOffsetX = 2;
+                    chartCtx.shadowOffsetY = 2;
+                    chartCtx.beginPath();
+                    chartCtx.moveTo(cx, cy);
+                    chartCtx.lineTo(needleX, needleY);
+                    chartCtx.lineWidth = 4;
+                    chartCtx.strokeStyle = '#1e293b';
+                    chartCtx.stroke();
+                    chartCtx.shadowColor = 'transparent';
+                    const headlen = 12;
+                    const dx = needleX - cx;
+                    const dy = needleY - cy;
+                    const needleAngle = Math.atan2(dy, dx);
+                    chartCtx.beginPath();
+                    chartCtx.moveTo(needleX, needleY);
+                    chartCtx.lineTo(needleX - headlen * Math.cos(needleAngle - Math.PI / 6), needleY - headlen * Math.sin(needleAngle - Math.PI / 6));
+                    chartCtx.moveTo(needleX, needleY);
+                    chartCtx.lineTo(needleX - headlen * Math.cos(needleAngle + Math.PI / 6), needleY - headlen * Math.sin(needleAngle + Math.PI / 6));
+                    chartCtx.lineWidth = 3;
+                    chartCtx.strokeStyle = '#1e293b';
+                    chartCtx.stroke();
+                    const gradient = chartCtx.createRadialGradient(cx, cy, 0, cx, cy, 12);
+                    gradient.addColorStop(0, '#ffffff');
+                    gradient.addColorStop(0.7, '#e2e8f0');
+                    gradient.addColorStop(1, '#94a3b8');
+                    chartCtx.beginPath();
+                    chartCtx.arc(cx, cy, 12, 0, 2 * Math.PI);
+                    chartCtx.fillStyle = gradient;
+                    chartCtx.fill();
+                    chartCtx.beginPath();
+                    chartCtx.arc(cx, cy, 12, 0, 2 * Math.PI);
+                    chartCtx.strokeStyle = '#64748b';
+                    chartCtx.lineWidth = 2;
+                    chartCtx.stroke();
+                    chartCtx.font = 'bold 24px Inter';
+                    chartCtx.fillStyle = '#1e293b';
+                    chartCtx.textAlign = 'center';
+                    chartCtx.fillText(safePercentage.toFixed(1) + '%', cx, cy - 30);
+                    let faixa = 'Insuficiente';
+                    let faixaColor = '#ef4444';
+                    if (safePercentage >= 96) {
+                        faixa = 'Excelente';
+                        faixaColor = '#22c55e';
+                    } else if (safePercentage >= 90) {
+                        faixa = 'Bom';
+                        faixaColor = '#eab308';
+                    } else if (safePercentage >= 85) {
+                        faixa = 'Regular';
+                        faixaColor = '#f59e0b';
+                    }
+                    chartCtx.font = '600 14px Inter';
+                    chartCtx.fillStyle = faixaColor;
+                    chartCtx.fillText(faixa, cx, cy - 10);
+                    chartCtx.restore();
+                }
+            }]
+        });
+    }
+
+    async function carregarSlaFerramentas(startDate = '', endDate = '') {
+        const urlParams = startDate && endDate ? `?start=${startDate}&end=${endDate}` : '';
+        try {
+            const response = await fetch(`/relatorio_sla_ferramentas_hodometro${urlParams}`);
+            if (!response.ok) {
+                throw new Error('Erro na resposta da rede: ' + response.statusText);
+            }
+            const data = await response.json();
+            const ferramentas = data.map(item => item.ferramenta);
+            const percentages = data.map(item => {
+                const total = item.total;
+                return total > 0 ? (item.atendidos / total) * 100 : 0;
+            });
+            const performanceData = percentages.map(perc => {
+                let label, color;
+                if (perc >= 96) {
+                    label = 'Excelente';
+                    color = '#22c55e';
+                } else if (perc >= 90) {
+                    label = 'Bom';
+                    color = '#facc15';
+                } else if (perc >= 85) {
+                    label = 'Regular';
+                    color = '#fb923c';
+                } else {
+                    label = 'Insuficiente';
+                    color = '#f87171';
+                }
+                return { label, color, value: perc };
+            });
+            const numTools = ferramentas.length;
+            const insufValue = 85;
+            const regValue = 5;
+            const bomValue = 6;
+            const excValue = 4;
+            const datasets = [
+                {
+                    label: 'Insuficiente',
+                    data: new Array(numTools).fill(insufValue),
+                    backgroundColor: '#f87171',
+                    borderColor: '#f87171',
+                    borderWidth: 1,
+                    stack: 'stack1'
+                },
+                {
+                    label: 'Regular',
+                    data: new Array(numTools).fill(regValue),
+                    backgroundColor: '#fb923c',
+                    borderColor: '#fb923c',
+                    borderWidth: 1,
+                    stack: 'stack1'
+                },
+                {
+                    label: 'Bom',
+                    data: new Array(numTools).fill(bomValue),
+                    backgroundColor: '#facc15',
+                    borderColor: '#facc15',
+                    borderWidth: 1,
+                    stack: 'stack1'
+                },
+                {
+                    label: 'Excelente',
+                    data: new Array(numTools).fill(excValue),
+                    backgroundColor: '#22c55e',
+                    borderColor: '#22c55e',
+                    borderWidth: 1,
+                    stack: 'stack1'
+                },
+                {
+                    label: 'Nível SLA',
+                    data: percentages,
+                    type: 'line',
+                    pointStyle: 'triangle',
+                    pointRotation: 90,
+                    radius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: 2,
+                    borderColor: '#1e293b',
+                    backgroundColor: performanceData.map(p => p.color),
+                    tension: 0,
+                    showLine: false,
+                    fill: false
+                }
+            ];
+            const ctx = document.getElementById("slaFerramentasChart").getContext("2d");
+            if (charts.slaFerramentasChart) {
+                charts.slaFerramentasChart.destroy();
+            }
+            charts.slaFerramentasChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: ferramentas,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            right: 30
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: "right",
+                            labels: {
+                                padding: 20,
+                                font: { size: 12 },
+                                color: '#64748b',
+                                filter: function(legendItem, chartData) {
+                                    return legendItem.datasetIndex < 4;
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    if (context.datasetIndex === 4) {
+                                        const performance = performanceData[context.dataIndex];
+                                        return `${performance.label}: ${performance.value.toFixed(2)}%`;
+                                    }
+                                    return context.label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Erro ao carregar SLA por ferramentas:', error);
+            const chartContainer = document.getElementById('slaFerramentasChart').parentElement;
+            chartContainer.innerHTML = '<p class="text-secondary text-center">Erro ao carregar o gráfico de SLA por ferramentas. Por favor, tente novamente mais tarde.</p>';
+        }
+    }
+
+    function exportScreenAsImage() {
+        console.log('Exportando tela como imagem às', new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+        const element = document.getElementById('content-to-export');
+        html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: true,
+            backgroundColor: '#f8fafc'
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'Relatorio_Dashboard.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            console.log('Imagem gerada com sucesso');
+        }).catch(error => {
+            console.error('Erro ao gerar imagem:', error);
+            alert('Erro ao exportar imagem. Verifique o console para detalhes.');
+        });
+    }
+
+    function exportTableToExcel() {
+        console.log("Iniciando exportação para Excel...");
+        const table = document.getElementById('detailedSlaTable');
+        const wb = XLSX.utils.table_to_book(table, { sheet: "Relatório SLA" });
+        XLSX.writeFile(wb, 'Relatorio_SLA_Detalhado.xlsx');
+        console.log("Exportação para Excel concluída.");
+    }
+
+    function applyDateFilter() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        loadAllData(startDate, endDate);
+    }
+
+    function populateFilters(data) {
+        const toolSelect = document.getElementById('filterTool');
+        const prioritySelect = document.getElementById('filterPriority');
+        const statusSelect = document.getElementById('filterStatus');
+
+        const tools = [...new Set(data.map(row => row.tool))].filter(tool => tool);
+        const priorities = [...new Set(data.map(row => row.priority))].filter(p => p);
+        const statuses = [...new Set(data.map(row => row.status))].filter(s => s);
+
+        toolSelect.innerHTML = '<option value="">Todas</option>' + tools.map(tool => `<option value="${tool}">${tool}</option>`).join('');
+        prioritySelect.innerHTML = '<option value="">Todas</option>' + priorities.map(p => `<option value="${p}">${p}</option>`).join('');
+        statusSelect.innerHTML = '<option value="">Todos</option>' + statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+
+    function applyTableFilter() {
+        const toolFilter = document.getElementById('filterTool').value.toLowerCase();
+        const priorityFilter = document.getElementById('filterPriority').value.toLowerCase();
+        const statusFilter = document.getElementById('filterStatus').value.toLowerCase();
+        const searchTerm = document.getElementById('filterSearch').value.toLowerCase();
+
+        const tbody = document.getElementById('detailedSlaTableBody');
+        tbody.innerHTML = '';
+
+        detailedSlaData.forEach(row => {
+            const toolMatch = !toolFilter || row.tool.toLowerCase().includes(toolFilter);
+            const priorityMatch = !priorityFilter || row.priority.toLowerCase().includes(priorityFilter);
+            const statusMatch = !statusFilter || row.status.toLowerCase().includes(statusFilter);
+            const searchMatch = !searchTerm || 
+                row.id.toString().includes(searchTerm) ||
+                row.os.toLowerCase().includes(searchTerm) ||
+                row.ods.toLowerCase().includes(searchTerm) ||
+                row.csr.toLowerCase().includes(searchTerm) ||
+                row.user.toLowerCase().includes(searchTerm) ||
+                row.tool.toLowerCase().includes(searchTerm) ||
+                row.priority.toLowerCase().includes(searchTerm) ||
+                row.subject.toLowerCase().includes(searchTerm) ||
+                row.created_at.toLowerCase().includes(searchTerm) ||
+                row.closed_at.toLowerCase().includes(searchTerm) ||
+                row.status.toLowerCase().includes(searchTerm) ||
+                row.sla_status.toLowerCase().includes(searchTerm) ||
+                row.sla_atendido.toLowerCase().includes(searchTerm) ||
+                row.time_diff.toLowerCase().includes(searchTerm);
+
+            if (toolMatch && priorityMatch && statusMatch && searchMatch) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.id}</td>
+                    <td>${row.os}</td>
+                    <td>${row.ods}</td>
+                    <td>${row.csr}</td>
+                    <td>${row.user}</td>
+                    <td>${row.tool}</td>
+                    <td>${row.priority}</td>
+                    <td class="truncate">${row.subject}</td>
+                    <td>${row.created_at}</td>
+                    <td>${row.closed_at}</td>
+                    <td><span class="status-badge ${row.status === 'Running' ? 'status-running' : 'status-paused'}">${row.status}</span></td>
+                    <td><span class="status-badge ${row.sla_status === 'Aguardando Versão' ? 'sla-sim' : row.sla_status === 'Não' ? 'sla-nao' : ''}">${row.sla_status}</span></td>
+                    <td>${row.sla_atendido}</td>
+                    <td>${row.time_diff}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        });
+
+        if (tbody.children.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="14" class="text-center text-secondary">Nenhum resultado encontrado.</td></tr>';
+        }
+    }
+
+    function loadTempoFechamentoChart(startDate = '', endDate = '') {
+        const urlParams = startDate && endDate ? `?start=${startDate}&end=${endDate}` : '';
+        fetch(`/relatorio_tempo_fechamento${urlParams}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro na resposta da rede: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const labels = data.map(item => item.month);
+                const values = data.map(item => parseFloat(item.average_time) || 0);
+                if (charts.tempoFechamentoChart) charts.tempoFechamentoChart.destroy();
+                charts.tempoFechamentoChart = createBarChart(
+                    document.getElementById('tempoFechamentoChart').getContext('2d'),
+                    labels,
+                    [{ label: 'Tempo Médio (horas)', data: values, backgroundColor: '#2563eb' }],
+                    { title: 'Tempo Médio de Fechamento' }
+                );
+            })
+            .catch(error => {
+                console.error('Erro ao carregar tempo de fechamento:', error);
+                const chartContainer = document.getElementById('tempoFechamentoChart').parentElement;
+                chartContainer.innerHTML = '<p class="text-secondary text-center">Erro ao carregar o gráfico de tempo de fechamento.</p>';
+            });
+    }
+</script>

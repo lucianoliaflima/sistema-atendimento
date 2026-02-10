@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalhes da CSR - {{ data.get('Título', 'Ticket') }}</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            background: #4F81BD;
+            margin: 0;
+            padding: 20px;
+            font-size: 2rem;
+            letter-spacing: 0.5px;
+        }
+        .container {
+            width: 90%;
+            max-width: 1400px;
+            background: white;
+            margin: 40px auto;
+            padding: 35px 45px;
+            border-radius: 14px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+        }
+        .field {
+            margin-bottom: 30px;
+        }
+        .field label {
+            display: block;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        .field div {
+            background: #f9fafc;
+            padding: 18px 20px;
+            border-radius: 10px;
+            border: 1px solid #dfe6ee;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #2c3e50;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+        .titulo-field div {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #1a73e8;
+            background: #e8f4ff;
+            border-color: #b3d4fc;
+        }
+        a.voltar {
+            display: inline-block;
+            margin-top: 20px;
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        a.voltar:hover {
+            text-decoration: underline;
+        }
+        .icon {
+            margin-right: 8px;
+            color: #4F81BD;
+        }
+        .status {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1565c0;
+            font-weight: 600;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+        .field div a {
+            color: #1a73e8;
+            word-break: break-all;
+        }
+        @media (max-width: 800px) {
+            .container {
+                width: 95%;
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Detalhes da CSR</h1>
+    <div class="container">
+        {% if data.get('Título') %}
+        <div class="field titulo-field">
+            <label><span class="icon">📌</span>Título</label>
+            <div>{{ data['Título'] }}</div>
+        </div>
+        {% endif %}
+
+        <div class="field">
+            <label><span class="icon">🔗</span>URL</label>
+            <div><a href="{{ data['URL'] }}" target="_blank">{{ data['URL'] }}</a></div>
+        </div>
+
+        {% if data.get('Comentários') %}
+        <div class="field">
+            <label><span class="icon">💬</span>Comentários</label>
+            <div>{{ data['Comentários'] | safe }}</div>
+        </div>
+        {% endif %}
+
+        {% if data.get('Status') %}
+        <div class="field">
+            <label><span class="icon">📄</span>Status</label>
+            <div class="status">{{ data['Status'] }}</div>
+        </div>
+        {% endif %}
+
+        {% if data.get('Última Atualização') or data.get('Ultima Atualização') %}
+        <div class="field">
+            <label><span class="icon">⏰</span>Última Atualização</label>
+            <div>{{ data.get('Última Atualização') or data.get('Ultima Atualização') }}</div>
+        </div>
+        {% endif %}
+
+        <a href="/Fresdesk" class="voltar">← Voltar para a lista</a>
+    </div>
+</body>
+</html>

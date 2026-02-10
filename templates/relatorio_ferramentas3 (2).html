@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Ferramentas - Dashboard Moderno</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #06b6d4;
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --border-light: #f1f5f9;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+        .container {
+            max-width: 95% !important;
+            width: 95% !important;
+        }
+        .header {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-light);
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+        .controls {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .form-group label {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+        .form-input {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            justify-content: center;
+            min-width: 120px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover {
+            background: var(--border-color);
+            transform: translateY(-1px);
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .chart-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-light);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .chart-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+        }
+        .chart-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+        .chart-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .total-display {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--success-color);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .total-display.text-primary {
+            color: var(--primary-color);
+        }
+        .total-display.text-danger {
+            color: var(--danger-color);
+        }
+        .total-display.text-warning {
+            color: var(--warning-color);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .chart-container.gauge {
+            height: 300px;
+        }
+        .gauge-card {
+            grid-column: span 2;
+            text-align: center;
+        }
+        .table-section {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-light);
+            margin-top: 2rem;
+        }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .table-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .table-filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: end;
+        } .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        .data-table th {
+            background: linear-gradient(135deg, var(--bg-tertiary), var(--border-light));
+            color: var(--text-primary);
+            font-weight: 600;
+            padding: 1rem 0.75rem;
+            text-align: left;
+            font-size: 0.875rem;
+            border-bottom: 2px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+        }
+        .data-table td {
+            padding: 0.875rem 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+            border-right: 1px solid var(--border-light);
+            font-size: 0.875rem;
+	    white-space: nowrap; /* Adicione esta linha */
+        }
+        .data-table tbody tr {
+            transition: background-color 0.2s ease;
+        }
+        .data-table tbody tr:hover {
+            background-color: var(--bg-tertiary);
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .status-running {
+            background: rgb(16 185 129 / 0.1);
+            color: var(--success-color);
+        }
+        .status-paused {
+            background: rgb(245 158 11 / 0.1);
+            color: var(--warning-color);
+        }
+        .sla-sim {
+            background: rgb(16 185 129 / 0.1);
+            color: var(--success-color);
+        }
+        .sla-nao {
+            background: rgb(239 68 68 / 0.1);
+            color: var(--danger-color);
+        }
+        .truncate {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .data-table td.editable:hover {
+            cursor: pointer;
+            background-color: var(--bg-tertiary);
+        }
+        .data-table td.editable input {
+            border: none;
+            background: transparent;
+            width: 100%;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+        }
+        .data-table td.editable input:focus {
+            outline: none;
+            border-bottom: 2px solid var(--primary-color);
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            .header {
+                padding: 1.5rem;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .gauge-card {
+                grid-column: span 1;
+            }
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            .table-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .table-filters {
+                justify-content: stretch;
+            }
+            .data-table {
+                font-size: 0.75rem;
+            }
+            .data-table th,
+            .data-table td {
+                padding: 0.5rem 0.25rem;
+            }
+        }
+        @media print {
+            .controls,
+            .btn,
+            .charts-grid,
+            .btn-voltar-destacado {
+                display: none !important;
+            }
+            .chart-card {
+                box-shadow: none;
+                page-break-inside: avoid;
+            }
+            body {
+                background: white;
+            }
+            .data-table, .data-table th, .data-table td {
+                border: 1px solid #000 !important;
+            }
+            .table-section {
+                page-break-before: always;
+            }
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .chart-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        .chart-card:nth-child(1) { animation-delay: 0.1s; }
+        .chart-card:nth-child(2) { animation-delay: 0.2s; }
+        .chart-card:nth-child(3) { animation-delay: 0.3s; }
+        .chart-card:nth-child(4) { animation-delay: 0.4s; }
+        .chart-card:nth-child(5) { animation-delay: 0.5s; }
+        .chart-card:nth-child(6) { animation-delay: 0.6s; }
+        .chart-card:nth-child(7) { animation-delay: 0.7s; }
+        .chart-card:nth-child(8) { animation-delay: 0.8s; }
+        .chart-card:nth-child(9) { animation-delay: 0.9s; }
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-muted);
+        }
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn-voltar-destacado {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 10;
+        }
+        .btn-voltar-destacado:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            text-decoration: none;
+            color: white;
+        }
+        .btn-voltar-destacado i {
+            font-size: 1rem;
+        }
+        .text-secondary {
+            color: var(--text-secondary);
+        }
+        .text-center {
+            text-align: center;
+        }
+        .mt-5 {
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="content-to-export">
+            <a href="/" class="btn-voltar-destacado"><i class="fas fa-arrow-left"></i> Voltar</a>
+            <div class="header">
+                <h1><i class="fas fa-chart-line"></i> Relatório de Ferramentas</h1>
+                <p>Dashboard interativo para análise de performance e SLA</p>
+            </div>
+            <div class="controls">
+                <div class="controls-grid">
+                    <div class="form-group">
+                        <label for="startDate"><i class="fas fa-calendar-alt"></i> Data Início</label>
+                        <input type="date" id="startDate" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate"><i class="fas fa-calendar-alt"></i> Data Fim</label>
+                        <input type="date" id="endDate" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="applyDateFilter()">
+                            <i class="fas fa-filter"></i> Filtrar
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <a href="/" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="exportToPDF()">
+                            <i class="fas fa-file-pdf"></i> Exportar PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-bar"></i> Atendimento</h3>
+                    <div class="chart-container">
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-users"></i> CSR</h3>
+                    <div class="chart-container">
+                        <canvas id="myChartCsr"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-line"></i> CSR vs OS</h3>
+                    <div class="chart-container">
+                        <canvas id="lineChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-clock"></i> Tempo Médio de Fechamento</h3>
+                    <div class="chart-container">
+                        <canvas id="tempoFechamentoChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-pie"></i> Contagem de Atendimento e CSR</h3>
+                    <div class="chart-container">
+                        <canvas id="ticketCountsChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Gráfico Prioridade</h3>
+                    <div class="chart-container">
+                        <canvas id="priorityChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-pie"></i> Distribuição por Prioridade</h3>
+                    <div class="chart-container">
+                        <canvas id="priorityPieChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-bar"></i> Horas Utilizadas</h3>
+                    <div id="totalHorasDisplay" class="total-display">Total: 0 horas</div>
+                    <div class="mb-3 text-center">
+                        <div style="display: inline-flex; gap: 15px;">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="filterAtendimento" value="os" checked>
+                                <label class="form-check-label" for="filterAtendimento">Atendimento</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="filterOds" value="ods" checked>
+                                <label class="form-check-label" for="filterOds">ODS</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="filterCsr" value="csr" checked>
+                                <label class="form-check-label" for="filterCsr">CSR</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="horasUtilizadasChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card gauge-card">
+                    <h3><i class="fas fa-chart-bar"></i> SLA por Ferramenta Individualizada</h3>
+                    <div class="chart-container">
+                        <canvas id="slaFerramentasChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card gauge-card">
+                    <h3><i class="fas fa-tachometer-alt"></i> SLA Acumulado</h3>
+                    <div class="chart-container gauge">
+                        <canvas id="slaGauge"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="table-section" id="pdf-section-table">
+                <div class="table-header">
+                    <h2><i class="fas fa-table"></i> Relatório Detalhado de SLA</h2>
+                    <div class="table-filters">
+                        <div class="form-group">
+                            <label for="filterTool">Ferramenta</label>
+                            <select id="filterTool" class="form-input">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filterPriority">Prioridade</label>
+                            <select id="filterPriority" class="form-input">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filterStatus">Status</label>
+                            <select id="filterStatus" class="form-input">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filterSearch">Pesquisar</label>
+                            <input type="text" id="filterSearch" class="form-input" placeholder="Pesquisar em todos os campos...">
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-primary" onclick="applyTableFilter()">
+                                <i class="fas fa-filter"></i> Aplicar
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-primary" onclick="exportToPDF()">
+                                <i class="fas fa-file-pdf"></i> Exportar PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="data-table" id="detailedSlaTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Atendimento</th>
+                                <th>ODS</th>
+                                <th>CSR</th>
+                                <th>Usuário</th>
+                                <th>Ferramenta</th>
+                                <th>Prioridade</th>
+                                <th>Assunto</th>
+                                <th>Criado em</th>
+                                <th>Data de Fechamento</th>
+                                <th>Status</th>
+                                <th>Status SLA</th>
+                                <th>SLA Atendido</th>
+                                <th>Tempo Efetivo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailedSlaTableBody">
+                            <tr>
+                                <td colspan="14" class="loading">
+                                    <div class="spinner"></div> Carregando dados...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let charts = {};
+        let detailedSlaData = [];
+        document.addEventListener('DOMContentLoaded', function () {
+            loadAllData();
+            const filterCheckboxes = document.querySelectorAll('.form-check-input');
+            filterCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateHorasUtilizadasChart);
+            });
+            document.getElementById('filterSearch').addEventListener('input', applyTableFilter);
+        });
+
+        function loadAllData(startDate = '', endDate = '') {
+            loadCharts(startDate, endDate);
+            loadDetailedSLATable(startDate, endDate);
+            loadTempoFechamentoChart(startDate, endDate);
+            carregarSlaFerramentas(startDate, endDate);
+        }
+
+        function loadDetailedSLATable(startDate = '', endDate = '') {
+            const urlParams = startDate && endDate ? `?start=${startDate}&end=${endDate}` : '';
+            fetch(`/relatorio_sla_detalhado${urlParams}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro na resposta da rede: ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    detailedSlaData = data;
+                    populateFilters(data);
+                    applyTableFilter();
+                    const total = data.length;
+                    const atendidos = data.filter(r => r.sla_atendido === 'Sim' || r.sla_atendido === 'Aguardando Versão').length;
+                    const percentage = total > 0 ? (atendidos / total) * 100 : 0;
+                    if (charts.slaGauge) charts.slaGauge.destroy();
+                    charts.slaGauge = createGaugeChart(
+                        document.getElementById('slaGauge').getContext('2d'),
+                        percentage
+                    );
+                    updateHorasUtilizadasChart();
+                })
+                .catch(error => {
+                    console.error('Erro ao obter dados detalhados de SLA:', error);
+                    const chartContainer = document.getElementById('slaGauge').parentElement;
+                    chartContainer.innerHTML = '<p class="text-secondary text-center">Erro ao carregar o gráfico de SLA. Por favor, tente novamente mais tarde.</p>';
+                    if (charts.horasUtilizadasChart) {
+                        charts.horasUtilizadasChart.destroy();
+                    }
+                    document.getElementById('totalHorasDisplay').textContent = 'Total: 0 horas';
+                    const horasChartContainer = document.getElementById('horasUtilizadasChart').parentElement;
+                    horasChartContainer.innerHTML = '<p class="text-secondary text-center mt-5">Erro ao carregar dados de horas.</p>';
+                });
+        }
+
+        function parseTimeToHours(timeString) {
+            if (!timeString || timeString === '-' || timeString === 'N/A') {
+                return 0;
+            }
+            const timeMatch = timeString.match(/^(\d+):(\d{2})$/);
+            if (timeMatch) {
+                const hours = parseInt(timeMatch[1], 10) || 0;
+                const minutes = parseInt(timeMatch[2], 10) || 0;
+                return hours + (minutes / 60);
+            }
+            const parts = timeString.split(' ');
+            let totalHours = 0;
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                if (part.endsWith('d')) {
+                    const days = parseFloat(part) || 0;
+                    totalHours += days * 24;
+                } else if (part.endsWith('h')) {
+                    const hours = parseFloat(part) || 0;
+                    totalHours += hours;
+                } else if (part.endsWith('m')) {
+                    const minutes = parseFloat(part) || 0;
+                    totalHours += minutes / 60;
+                }
+            }
+            return totalHours;
+        }
+
+        function formatDecimalToTime(decimalHours) {
+            const hours = Math.floor(decimalHours);
+            const minutes = Math.round((decimalHours - hours) * 60);
+            return `${hours} horas e ${minutes} minutos`;
+        }
+
+        function updateHorasUtilizadasChart() {
+            const checkedFilters = Array.from(document.querySelectorAll('.form-check-input:checked')).map(cb => cb.value);
+            let filteredHoursData = detailedSlaData.filter(row => {
+                if (checkedFilters.length === 0) {
+                    return true;
+                }
+                let hasValue = false;
+                checkedFilters.forEach(filter => {
+                    if (row[filter] && row[filter] !== 'N/A') {
+                        hasValue = true;
+                    }
+                });
+                return hasValue;
+            });
+
+            if (charts.horasUtilizadasChart) {
+                charts.horasUtilizadasChart.destroy();
+            }
+
+            const allTools = [...new Set(filteredHoursData.map(row => row.tool).filter(tool => tool))];
+            const toolHours = {};
+            allTools.forEach(tool => {
+                toolHours[tool] = 0;
+            });
+
+            filteredHoursData.forEach(row => {
+                const hours = parseTimeToHours(row.time_diff);
+                if (toolHours[row.tool] !== undefined) {
+                    toolHours[row.tool] += hours;
+                }
+            });
+
+            const labels = Object.keys(toolHours).sort();
+            const values = labels.map(label => toolHours[label]);
+            const totalHours = values.reduce((a, b) => a + b, 0);
+            document.getElementById('totalHorasDisplay').textContent = `Total: ${formatDecimalToTime(totalHours)}`;
+
+            const ctx = document.getElementById('horasUtilizadasChart').getContext('2d');
+            const colors = labels.map((_, i) => `hsl(${i * 360 / labels.length}, 70%, 50%)`);
+            charts.horasUtilizadasChart = createBarChart(ctx, labels, [{
+                label: 'Horas Utilizadas',
+                data: values,
+                backgroundColor: colors,
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }], {
+                title: '',
+                tooltipCallbacks: {
+                    label: function(context) {
+                        const decimalHours = context.parsed.y;
+                        const hours = Math.floor(decimalHours);
+                        const minutes = Math.round((decimalHours - hours) * 60);
+                        return `${context.label}: ${hours}h ${minutes}m`;
+                    }
+                }
+            });
+        }
+function createBarChart(ctx, labels, datasets, options = {}) {
+    // calcula o maior valor do dataset
+    const maxValue = Math.max(...datasets.flatMap(d => d.data));
+
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false, // evita "achatamento" quando o container é pequeno
+            plugins: {
+                title: {
+                    display: !!options.title,
+                    text: options.title
+                }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: Math.ceil(maxValue / 5), // escala adaptativa
+                        callback: function(value) {
+                            return value;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+
+        function createLineChart(ctx, labels, datasets, options) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    ...options,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: options.title || '',
+                            font: { size: 16, weight: 'bold' },
+                            color: '#1e293b'
+                        },
+                        legend: { labels: { font: { size: 12 }, color: '#64748b' } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+                        x: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+        }
+
+        function createPieChart(ctx, labels, datasets, options) {
+            return new Chart(ctx, {
+                type: 'pie',
+                data: { labels, datasets },
+                options: {
+                    ...options,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: options.title || '',
+                            font: { size: 16, weight: 'bold' },
+                            color: '#1e293b'
+                        },
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { size: 12 }, color: '#64748b', padding: 20 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: options.tooltipCallbacks?.label || function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += context.parsed.toFixed(2);
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createGaugeChart(ctx, percentage) {
+            const safePercentage = Math.max(0, Math.min(100, percentage));
+            const ranges = [
+                { label: 'Insuficiente', value: 85, color: '#ef4444' },
+                { label: 'Regular', value: 5, color: '#f59e0b' },
+                { label: 'Bom', value: 6, color: '#eab308' },
+                { label: 'Excelente', value: 4, color: '#22c55e' }
+            ];
+            const labels = ranges.map(r => r.label);
+            const data = ranges.map(r => r.value);
+            const colors = ranges.map(r => r.color);
+            return new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: colors,
+                        borderWidth: 3,
+                        borderColor: '#ffffff',
+                        cutout: '75%',
+                        circumference: 180,
+                        rotation: 270
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 11 },
+                                color: '#64748b',
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: { enabled: false }
+                    },
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 2000,
+                        easing: 'easeOutQuart'
+                    }
+                },
+                plugins: [{
+                    id: 'needle',
+                    afterDraw: (chart) => {
+                        const { ctx: chartCtx, chartArea: { width, height } } = chart;
+                        const cx = width / 2;
+                        const cy = height * 0.9;
+                        const radius = Math.min(width, height) / 2 * 0.7;
+                        const angle = Math.PI * (safePercentage / 100);
+                        const needleX = cx + radius * Math.cos(Math.PI - angle);
+                        const needleY = cy - radius * Math.sin(Math.PI - angle);
+                        chartCtx.save();
+                        chartCtx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                        chartCtx.shadowBlur = 4;
+                        chartCtx.shadowOffsetX = 2;
+                        chartCtx.shadowOffsetY = 2;
+                        chartCtx.beginPath();
+                        chartCtx.moveTo(cx, cy);
+                        chartCtx.lineTo(needleX, needleY);
+                        chartCtx.lineWidth = 4;
+                        chartCtx.strokeStyle = '#1e293b';
+                        chartCtx.stroke();
+                        chartCtx.shadowColor = 'transparent';
+                        const headlen = 12;
+                        const dx = needleX - cx;
+                        const dy = needleY - cy;
+                        const needleAngle = Math.atan2(dy, dx);
+                        chartCtx.beginPath();
+                        chartCtx.moveTo(needleX, needleY);
+                        chartCtx.lineTo(needleX - headlen * Math.cos(needleAngle - Math.PI / 6), needleY - headlen * Math.sin(needleAngle - Math.PI / 6));
+                        chartCtx.moveTo(needleX, needleY);
+                        chartCtx.lineTo(needleX - headlen * Math.cos(needleAngle + Math.PI / 6), needleY - headlen * Math.sin(needleAngle + Math.PI / 6));
+                        chartCtx.lineWidth = 3;
+                        chartCtx.strokeStyle = '#1e293b';
+                        chartCtx.stroke();
+                        const gradient = chartCtx.createRadialGradient(cx, cy, 0, cx, cy, 12);
+                        gradient.addColorStop(0, '#ffffff');
+                        gradient.addColorStop(0.7, '#e2e8f0');
+                        gradient.addColorStop(1, '#94a3b8');
+                        chartCtx.beginPath();
+                        chartCtx.arc(cx, cy, 12, 0, 2 * Math.PI);
+                        chartCtx.fillStyle = gradient;
+                        chartCtx.fill();
+                        chartCtx.beginPath();
+                        chartCtx.arc(cx, cy, 12, 0, 2 * Math.PI);
+                        chartCtx.strokeStyle = '#64748b';
+                        chartCtx.lineWidth = 2;
+                        chartCtx.stroke();
+                        chartCtx.font = 'bold 24px Inter';
+                        chartCtx.fillStyle = '#1e293b';
+                        chartCtx.textAlign = 'center';
+                        chartCtx.fillText(safePercentage.toFixed(1) + '%', cx, cy - 30);
+                        let faixa = 'Insuficiente';
+                        let faixaColor = '#ef4444';
+                        if (safePercentage >= 96) {
+                            faixa = 'Excelente';
+                            faixaColor = '#22c55e';
+                        } else if (safePercentage >= 90) {
+                            faixa = 'Bom';
+                            faixaColor = '#eab308';
+                        } else if (safePercentage >= 85) {
+                            faixa = 'Regular';
+                            faixaColor = '#f59e0b';
+                        }
+                        chartCtx.font = '600 14px Inter';
+                        chartCtx.fillStyle = faixaColor;
+                        chartCtx.fillText(faixa, cx, cy - 10);
+                        chartCtx.restore();
+                    }
+                }]
+            });
+        }
+
+        async function carregarSlaFerramentas(startDate = '', endDate = '') {
+            const urlParams = startDate && endDate ? `?start=${startDate}&end=${endDate}` : '';
+            try {
+                const response = await fetch(`/relatorio_sla_ferramentas_hodometro${urlParams}`);
+                if (!response.ok) {
+                    throw new Error('Erro na resposta da rede: ' + response.statusText);
+                }
+                const data = await response.json();
+                const ferramentas = data.map(item => item.ferramenta);
+                const percentages = data.map(item => {
+                    const total = item.total;
+                    return total > 0 ? (item.atendidos / total) * 100 : 0;
+                });
+                const performanceData = percentages.map(perc => {
+                    let label, color;
+                    if (perc >= 96) {
+                        label = 'Excelente';
+                        color = '#22c55e';
+                    } else if (perc >= 90) {
+                        label = 'Bom';
+                        color = '#facc15';
+                    } else if (perc >= 85) {
+                        label = 'Regular';
+                        color = '#fb923c';
+                    } else {
+                        label = 'Insuficiente';
+                        color = '#f87171';
+                    }
+                    return { label, color, value: perc };
+                });
+                const numTools = ferramentas.length;
+                const insufValue = 85;
+                const regValue = 5;
+                const bomValue = 6;
+                const excValue = 4;
+                const datasets = [
+                    {
+                        label: 'Insuficiente',
+                        data: new Array(numTools).fill(insufValue),
+                        backgroundColor: '#f87171',
+                        borderColor: '#f87171',
+                        borderWidth: 1,
+                        stack: 'stack1'
+                    },
+                    {
+                        label: 'Regular',
+                        data: new Array(numTools).fill(regValue),
+                        backgroundColor: '#fb923c',
+                        borderColor: '#fb923c',
+                        borderWidth: 1,
+                        stack: 'stack1'
+                    },
+                    {
+                        label: 'Bom',
+                        data: new Array(numTools).fill(bomValue),
+                        backgroundColor: '#facc15',
+                        borderColor: '#facc15',
+                        borderWidth: 1,
+                        stack: 'stack1'
+                    },
+                    {
+                        label: 'Excelente',
+                        data: new Array(numTools).fill(excValue),
+                        backgroundColor: '#22c55e',
+                        borderColor: '#22c55e',
+                        borderWidth: 1,
+                        stack: 'stack1'
+                    },
+                    {
+                        label: 'Nível SLA',
+                        data: percentages,
+                        type: 'line',
+                        pointStyle: 'triangle',
+                        pointRotation: 90,
+                        radius: 0,
+                        pointHoverRadius: 0,
+                        borderWidth: 2,
+                        borderColor: '#1e293b',
+                        backgroundColor: performanceData.map(p => p.color),
+                        tension: 0,
+                        showLine: false,
+                        fill: false
+                    }
+                ];
+                const ctx = document.getElementById("slaFerramentasChart").getContext("2d");
+                if (charts.slaFerramentasChart) {
+                    charts.slaFerramentasChart.destroy();
+                }
+                charts.slaFerramentasChart = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: ferramentas,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                right: 30
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: "right",
+                                labels: {
+                                    padding: 20,
+                                    font: { size: 12 },
+                                    color: '#64748b',
+                                    filter: function(legendItem, chartData) {
+                                        return legendItem.datasetIndex < 4;
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        if (context.datasetIndex === 4) {
+                                            const performance = performanceData[context.dataIndex];
+                                            return `${performance.label}: ${context.parsed.y.toFixed(1)}%`;
+                                        } else {
+                                            const segValues = [85, 5, 6, 4];
+                                            return `${context.dataset.label}: ${segValues[context.datasetIndex]}%`;
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                stacked: true,
+                                grid: { display: false },
+                                ticks: { color: '#64748b' },
+                                offset: true
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Performance SLA (%)',
+                                    color: '#1e293b'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    },
+                                    color: '#64748b'
+                                },
+                                grid: {
+                                    color: '#f1f5f9'
+                                }
+                            }
+                        }
+                    },
+                    plugins: [{
+                        id: 'adjustPoints',
+                        afterDatasetDraw: (chart) => {
+                            const { ctx, data, scales: { x, y } } = chart;
+                            const metaBar = chart.getDatasetMeta(0);
+                            data.datasets[4].data.forEach((value, index) => {
+                                const bar = metaBar.data[index];
+                                const barX = bar.x;
+                                const barWidth = bar.width;
+                                const yLevel = y.getPixelForValue(value);
+                                ctx.save();
+                                const arrowStartX = barX + barWidth / 2 + 5;
+                                const arrowEndX = arrowStartX + 15;
+                                ctx.beginPath();
+                                ctx.moveTo(arrowStartX, yLevel);
+                                ctx.lineTo(arrowEndX, yLevel);
+                                ctx.lineWidth = 2;
+                                ctx.strokeStyle = data.datasets[4].backgroundColor[index];
+                                ctx.stroke();
+                                const headlen = 8;
+                                ctx.beginPath();
+                                ctx.moveTo(arrowEndX, yLevel);
+                                ctx.lineTo(arrowEndX + headlen, yLevel - headlen / 2);
+                                ctx.lineTo(arrowEndX + headlen, yLevel + headlen / 2);
+                                ctx.closePath();
+                                ctx.fillStyle = data.datasets[4].backgroundColor[index];
+                                ctx.fill();
+                                ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                                ctx.shadowBlur = 2;
+                                ctx.shadowOffsetY = 1;
+                                ctx.restore();
+                            });
+                        }
+                    }]
+                });
+            } catch (error) {
+                console.error('Erro ao carregar SLA-Ferramentas:', error);
+                const chartContainer = document.getElementById('slaFerramentasChart').parentElement;
+                chartContainer.innerHTML = '<p class="text-secondary text-center">Erro ao carregar o gráfico.</p>';
+            }
+        }
+
+        function loadCharts(startDate = '', endDate = '') {
+            const urlParams = startDate && endDate ? `?start=${startDate}&end=${endDate}` : '';
+            Object.keys(charts).forEach(key => charts[key]?.destroy());
+            fetch(`/relatorio_ferramentas${urlParams}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length)
+                        charts.myChart = createBarChart(
+                            document.getElementById('myChart').getContext('2d'),
+                            data.map(i => i.ferramenta),
+                            [
+                                {
+                                    label: 'Abertos',
+                                    data: data.map(i => i.abertos),
+                                    backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                                    borderColor: 'rgba(37, 99, 235, 1)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Fechados',
+                                    data: data.map(i => i.fechados),
+                                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                    borderColor: 'rgba(16, 185, 129, 1)',
+                                    borderWidth: 1
+                                }
+                            ],
+                            { title: '' }
+                        );
+                })
+                .catch(error => console.error('Erro ao carregar dados de atendimento:', error));
+            fetch(`/relatorio_ferramentas_csr${urlParams}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length)
+                        charts.myChartCsr = createBarChart(
+                            document.getElementById('myChartCsr').getContext('2d'),
+                            data.map(i => i.ferramenta),
+                            [
+                                {
+                                    label: 'Abertos',
+                                    data: data.map(i => i.abertos),
+                                    backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                                    borderColor: 'rgba(37, 99, 235, 1)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Fechados',
+                                    data: data.map(i => i.fechados),
+                                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                    borderColor: 'rgba(16, 185, 129, 1)',
+                                    borderWidth: 1
+                                }
+                            ],
+                            { title: '' }
+                        );
+                })
+                .catch(error => console.error('Erro ao carregar dados CSR:', error));
+            fetch(`/ticket_counts_chart${urlParams}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.labels)
+                        charts.ticketCountsChart = createPieChart(
+                            document.getElementById('ticketCountsChart').getContext('2d'),
+                            data.labels,
+                            [{
+                                data: data.values,
+                                backgroundColor: data.colors,
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }],
+                            { title: '' }
+                        );
+                })
+                .catch(error => console.error('Erro ao carregar contagem de tickets:', error));
+            fetch(`/plot_line${urlParams}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.labels)
+                        charts.lineChart = createLineChart(
+                            document.getElementById('lineChart').getContext('2d'),
+                            data.labels,
+                            [
+                                {
+                                    label: 'CSR',
+                                    data: data.csr_values,
+                                    borderColor: 'rgba(6, 182, 212, 1)',
+                                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                                    fill: true,
+                                    tension: 0.4
+                                },
+                                {
+                                    label: 'Atendimento',
+                                    data: data.os_values,
+                                    borderColor: 'rgba(239, 68, 68, 1)',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                    fill: true,
+                                    tension: 0.4
+                                }
+                            ],
+                            { title: '' }
+                        );
+                })
+                .catch(error => console.error('Erro ao carregar gráfico de linha:', error));
+            fetch(`/relatorio_prioridade${urlParams}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length)
+                        charts.priorityChart = createBarChart(
+                            document.getElementById('priorityChart').getContext('2d'),
+                            data.map(i => i.prioridade),
+                            [
+                                {
+                                    label: 'Abertos',
+                                    data: data.map(i => i.abertos),
+                                    backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                                    borderColor: 'rgba(37, 99, 235, 1)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Fechados',
+                                    data: data.map(i => i.fechados),
+                                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                    borderColor: 'rgba(16, 185, 129, 1)',
+                                    borderWidth: 1
+                                }
+                            ],
+                            { title: '' }
+                        );
+                })
+                .catch(error => console.error('Erro ao carregar dados de prioridade:', error));
+            fetch(`/relatorio_prioridade_pizza${urlParams}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.labels)
+                        charts.priorityPieChart = createPieChart(
+                            document.getElementById('priorityPieChart').getContext('2d'),
+                            data.labels,
+                            [{
+                                data: data.values,
+                                backgroundColor: data.colors,
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }],
+                            { title: '' }
+                        );
+                })
+                .catch(error => console.error('Erro ao carregar pizza de prioridade:', error));
+        }
+
+        function loadTempoFechamentoChart(startDate = '', endDate = '') {
+            const urlParams = startDate && endDate ? `?start=${startDate}&end=${endDate}` : '';
+            fetch(`/relatorio_tempo_fechamento${urlParams}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Erro na resposta da rede: ' + response.statusText);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Dados recebidos para o gráfico de tempo de fechamento:", data);
+                    if (!Array.isArray(data.labels) || data.labels.length === 0) {
+                        const chartContainer = document.getElementById('tempoFechamentoChart').parentElement;
+                        chartContainer.innerHTML = '<p class="text-secondary text-center">Nenhum dado de ticket fechado encontrado.</p>';
+                        return;
+                    }
+                    if (!Array.isArray(data.data_values) || !Array.isArray(data.data_values_te)) {
+                        throw new Error('Formato de dados inválido do backend.');
+                    }
+                    if (data.labels.length !== data.data_values.length || data.labels.length !== data.data_values_te.length) {
+                        console.error('Comprimento dos arrays:', {
+                            labels: data.labels.length,
+                            data_values: data.data_values.length,
+                            data_values_te: data.data_values_te.length
+                        });
+                        throw new Error('Comprimento dos arrays retornados não coincide (labels / data_values / data_values_te).');
+                    }
+                    if (!data.data_values.every(v => typeof v === 'number' && isFinite(v)) ||
+                        !data.data_values_te.every(v => typeof v === 'number' && isFinite(v))) {
+                        console.error('Conteúdo arrays:', data);
+                        throw new Error('Dados inválidos: espera números em data_values e data_values_te.');
+                    }
+
+                    const timeDiffAverages = data.data_values;
+                    const effectiveAverages = data.data_values_te;
+
+                    const ctx = document.getElementById('tempoFechamentoChart').getContext('2d');
+                    const chartContainer = document.getElementById('tempoFechamentoChart').parentElement;
+
+                    const existingDisplays = chartContainer.querySelectorAll('.total-display');
+                    existingDisplays.forEach(el => el.remove());
+
+                    const totalAverageTE = effectiveAverages.reduce((a, b) => a + b, 0) / effectiveAverages.length;
+                    const totalDisplayTE = document.createElement('div');
+                    totalDisplayTE.className = 'total-display text-danger';
+                    totalDisplayTE.textContent = `Média Tempo Efetivo: ${formatDecimalToTime(totalAverageTE)}`;
+                    chartContainer.insertBefore(totalDisplayTE, document.getElementById('tempoFechamentoChart'));
+
+                    const totalAverageTimeDiff = timeDiffAverages.reduce((a, b) => a + b, 0) / timeDiffAverages.length;
+                    const totalDisplayTimeDiff = document.createElement('div');
+                    totalDisplayTimeDiff.className = 'total-display text-warning';
+                    totalDisplayTimeDiff.textContent = `Média Data Fechamento - Criado: ${formatDecimalToTime(totalAverageTimeDiff)}`;
+                    chartContainer.insertBefore(totalDisplayTimeDiff, document.getElementById('tempoFechamentoChart'));
+
+                    if (charts.tempoFechamentoChart) charts.tempoFechamentoChart.destroy();
+
+                    charts.tempoFechamentoChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.labels,
+                            datasets: [
+                                {
+                                    label: 'Tempo Efetivo (horas)',
+                                    data: effectiveAverages,
+                                    type: 'line',
+                                    borderColor: 'rgba(255, 99, 132, 1)',
+                                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                    fill: false,
+                                    tension: 0.1,
+                                    borderWidth: 2
+                                },
+                                {
+                                    label: 'Média Data Fechamento - Criado (horas)',
+                                    data: timeDiffAverages,
+                                    type: 'line',
+                                    borderColor: 'rgba(245, 158, 11, 1)',
+                                    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                                    fill: false,
+                                    tension: 0.1,
+                                    borderWidth: 2
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 400,
+                                    title: {
+                                        display: true,
+                                        text: 'Tempo (horas)'
+                                    },
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value + 'h';
+                                        }
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Ferramenta'
+                                    },
+                                    ticks: {
+                                        autoSkip: false,
+                                        maxRotation: 45,
+                                        minRotation: 45,
+                                        font: {
+                                            size: 12
+                                        },
+                                        callback: function(value, index, values) {
+                                            const label = data.labels[index];
+                                            if (typeof label === 'string' && label.length > 15) {
+                                                const words = label.split(' ');
+                                                let lines = [];
+                                                let currentLine = '';
+                                                words.forEach(word => {
+                                                    if ((currentLine + word).length > 15) {
+                                                        lines.push(currentLine.trim());
+                                                        currentLine = word + ' ';
+                                                    } else {
+                                                        currentLine += word + ' ';
+                                                    }
+                                                });
+                                                if (currentLine) lines.push(currentLine.trim());
+                                                return lines;
+                                            }
+                                            return label;
+                                        }
+                                    },
+                                    padding: 10
+                                }
+                            },
+                            plugins: {
+                                legend: { display: true },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const decimalHours = context.parsed.y;
+                                            return `${context.dataset.label}: ${formatDecimalToTime(decimalHours)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            layout: {
+                                padding: {
+                                    bottom: 30
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar dados do gráfico de tempo de fechamento:', error);
+                    const chartContainer = document.getElementById('tempoFechamentoChart').parentElement;
+                    chartContainer.innerHTML = '<p class="text-secondary text-center">Erro ao carregar o gráfico. Por favor, tente novamente mais tarde.</p>';
+                });
+        }
+
+        function applyTableFilter() {
+            const toolFilter = document.getElementById('filterTool').value;
+            const priorityFilter = document.getElementById('filterPriority').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const searchFilter = document.getElementById('filterSearch').value.toLowerCase();
+            const filteredData = detailedSlaData.filter(row => {
+                const matchesFilters = 
+                    (!toolFilter || row.tool === toolFilter) &&
+                    (!priorityFilter || row.priority === priorityFilter) &&
+                    (!statusFilter || row.status === statusFilter);
+                if (!searchFilter || !matchesFilters) {
+                    return matchesFilters;
+                }
+                return (
+                    (row.ticket_id?.toString().toLowerCase().includes(searchFilter)) ||
+                    (row.os?.toLowerCase().includes(searchFilter)) ||
+                    (row.ods?.toLowerCase().includes(searchFilter)) ||
+                    (row.csr?.toLowerCase().includes(searchFilter)) ||
+                    (row.username?.toLowerCase().includes(searchFilter)) ||
+                    (row.tool?.toLowerCase().includes(searchFilter)) ||
+                    (row.priority?.toLowerCase().includes(searchFilter)) ||
+                    (row.subject?.toLowerCase().includes(searchFilter)) ||
+                    (row.created_at?.toLowerCase().includes(searchFilter)) ||
+                    (row.closed_at?.toLowerCase().includes(searchFilter)) ||
+                    (row.status?.toLowerCase().includes(searchFilter)) ||
+                    (row.status_sla?.toLowerCase().includes(searchFilter)) ||
+                    (row.sla_atendido?.toLowerCase().includes(searchFilter)) ||
+                    (row.time_diff?.toLowerCase().includes(searchFilter))
+                );
+            });
+            const tbody = document.getElementById('detailedSlaTableBody');
+            tbody.innerHTML = '';
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="14" style="text-align: center; color: var(--text-muted);">Nenhum resultado encontrado.</td></tr>`;
+                return;
+            }
+            filteredData.forEach(row => {
+                const tr = document.createElement('tr');
+                const statusSlaClass = row.status === 'closed' ? '' : (row.status_sla === 'Pausado' ? 'status-paused' : 'status-running');
+                const slaAtendidoClass = row.sla_atendido === 'Sim' ? 'sla-sim' : (row.sla_atendido === 'Não' ? 'sla-nao' : '');
+                tr.innerHTML = `
+                    <td>${row.ticket_id}</td>
+                    <td>${row.os || 'N/A'}</td>
+                    <td>${row.ods || 'N/A'}</td>
+                    <td>${row.csr || 'N/A'}</td>
+                    <td>${row.username}</td>
+                    <td>${row.tool}</td>
+                    <td>${row.priority}</td>
+                    <td><span class="truncate" title="${row.subject}">${row.subject}</span></td>
+                    <td class="editable no-wrap" data-field="created_at" data-ticket-id="${row.ticket_id}">${row.created_at}</td>
+                    <td class="editable" data-field="closed_at" data-ticket-id="${row.ticket_id}">${row.closed_at || '-'}</td>
+                    <td><span class="status-badge ${row.status === 'closed' ? 'status-running' : 'status-paused'}">${row.status === 'closed' ? 'Fechado' : 'Em andamento'}</span></td>
+                    <td class="${statusSlaClass}">${row.status === 'closed' ? 'Fechado' : row.status_sla}</td>
+                    <td><span class="status-badge ${slaAtendidoClass}">${row.sla_atendido}</span></td>
+                    <td><b>${row.time_diff}</b></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Adicionar ouvintes de eventos para células editáveis
+            document.querySelectorAll('.editable').forEach(cell => {
+                cell.addEventListener('click', function () {
+                    const field = this.dataset.field;
+                    const ticketId = this.dataset.ticketId;
+                    const currentValue = this.textContent === '-' ? '' : this.textContent;
+
+                    // Substituir texto por campo de entrada
+                    const input = document.createElement('input');
+                    input.type = 'datetime-local';
+                    input.value = currentValue ? currentValue.replace(' ', 'T').slice(0, 16) : '';
+                    input.className = 'form-input';
+                    input.style.width = '100%';
+                    this.innerHTML = '';
+                    this.appendChild(input);
+                    input.focus();
+
+                    // Salvar ao perder o foco ou pressionar Enter
+                    input.addEventListener('blur', () => saveEdit(this, ticketId, field, input.value));
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            saveEdit(this, ticketId, field, input.value);
+                        }
+                    });
+                });
+            });
+        }
+
+        function saveEdit(cell, ticketId, field, value) {
+            // Formatar o valor para 'YYYY-MM-DD HH:MM' se necessário
+            const formattedValue = value ? value.replace('T', ' ') : null;
+            const originalValue = cell.textContent === '-' ? null : cell.textContent;
+
+            // Exibir popup de confirmação
+            const confirmSave = window.confirm(`Deseja salvar a alteração da data ${field === 'created_at' ? 'de criação' : 'de fechamento'} para "${formattedValue || 'N/A'}"?`);
+            if (!confirmSave) {
+                // Reverter para o valor original se o usuário clicar em "Não"
+                cell.textContent = originalValue || '-';
+                return;
+            }
+
+            // Mostrar spinner durante o salvamento
+            cell.innerHTML = '<div class="spinner"></div>';
+
+            // Enviar atualização para o backend
+            fetch('/update_ticket_dates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ticket_id: ticketId,
+                    field: field,
+                    value: formattedValue,
+                }),
+            })
+            .then(response => {
+                // Restaurar o valor formatado na célula antes de verificar a resposta
+                cell.textContent = formattedValue || '-';
+                if (!response.ok) {
+                    throw new Error('Erro ao atualizar a data');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Atualizar dados locais para refletir a mudança
+                    const row = detailedSlaData.find(r => r.ticket_id === parseInt(ticketId));
+                    if (row) {
+                        row[field] = formattedValue || 'N/A';
+                        row.time_diff = data.time_diff;
+                        row.sla_atendido = data.sla_atendido;
+                        row.sla_calc = data.sla_calc;
+                        applyTableFilter();
+                        // Recarregar gráficos para refletir mudanças
+                        loadAllData(document.getElementById('startDate').value, document.getElementById('endDate').value);
+                    }
+                    alert('Data atualizada com sucesso!');
+                } else {
+                    // Reverter em caso de erro
+                    cell.textContent = originalValue || '-';
+                    alert('Erro ao atualizar a data: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao salvar edição:', error);
+                cell.textContent = originalValue || '-';
+                alert('Erro ao salvar a edição. Tente novamente.');
+            });
+        }
+
+        function populateFilters(data) {
+            const toolSelect = document.getElementById('filterTool');
+            const prioritySelect = document.getElementById('filterPriority');
+            const statusSelect = document.getElementById('filterStatus');
+            toolSelect.innerHTML = '<option value="">Todas</option>';
+            prioritySelect.innerHTML = '<option value="">Todas</option>';
+            statusSelect.innerHTML = '<option value="">Todos</option>';
+            [...new Set(data.map(item => item.tool))].forEach(tool => {
+                if (tool) {
+                    const option = document.createElement('option');
+                    option.value = tool;
+                    option.textContent = tool;
+                    toolSelect.appendChild(option);
+                }
+            });
+            [...new Set(data.map(item => item.priority))].forEach(priority => {
+                if (priority) {
+                    const option = document.createElement('option');
+                    option.value = priority;
+                    option.textContent = priority;
+                    prioritySelect.appendChild(option);
+                }
+            });
+            [...new Set(data.map(item => item.status))].forEach(status => {
+                if (status) {
+                    const option = document.createElement('option');
+                    option.value = status;
+                    option.textContent = status === 'closed' ? 'Fechado' : 'Em andamento';
+                    statusSelect.appendChild(option);
+                }
+            });
+        }
+
+        function applyDateFilter() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            if (startDate && endDate) {
+                loadAllData(startDate, endDate);
+            } else {
+                alert('Por favor, selecione ambas as datas para filtrar.');
+            }
+        }
+
+        function exportToPDF() {
+            console.log("Iniciando exportação para PDF...");
+            const element = document.getElementById('pdf-section-table');
+            const options = {
+                margin: [0.5, 0.5, 0.5, 0.5],
+                filename: 'Relatorio_SLA_Detalhado.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true, 
+                    logging: true,
+                    width: element.offsetWidth,
+                    windowWidth: element.offsetWidth
+                },
+                jsPDF: { 
+                    unit: 'in', 
+                    format: 'a4', 
+                    orientation: 'landscape' 
+                },
+                pagebreak: { 
+                    mode: ['css', 'legacy'],
+                    avoid: ['tr', '.chart-card']
+                }
+            };
+            const buttonsToHide = element.querySelectorAll('.btn, .controls, .table-filters');
+            buttonsToHide.forEach(el => el.style.display = 'none');
+            const table = document.getElementById('detailedSlaTable');
+            const originalTableStyle = table.style.cssText;
+            const originalCellStyles = [];
+            const cells = table.querySelectorAll('th, td');
+            cells.forEach(cell => {
+                originalCellStyles.push(cell.style.cssText);
+                cell.style.border = '1px solid #000';
+                cell.style.padding = '8px';
+                cell.style.fontSize = '10pt';
+                cell.style.fontFamily = 'Arial, sans-serif';
+            });
+            table.style.border = '1px solid #000';
+            table.style.borderCollapse = 'collapse';
+            table.style.width = '100%';
+            table.style.fontFamily = 'Arial, sans-serif';
+            const header = document.createElement('div');
+            header.style.textAlign = 'center';
+            header.style.fontSize = '14pt';
+            header.style.marginBottom = '10px';
+            header.textContent = 'Relatório Detalhado de SLA';
+            element.insertBefore(header, element.firstChild);
+            html2pdf().from(element).set(options).save().then(() => {
+                buttonsToHide.forEach(el => el.style.display = '');
+                table.style.cssText = originalTableStyle;
+                cells.forEach((cell, index) => {
+                    cell.style.cssText = originalCellStyles[index];
+                });
+                header.remove();
+                console.log("PDF gerado com sucesso!");
+            }).catch(err => {
+                buttonsToHide.forEach(el => el.style.display = '');
+                table.style.cssText = originalTableStyle;
+                cells.forEach((cell, index) => {
+                    cell.style.cssText = originalCellStyles[index];
+                });
+                header.remove();
+                console.error("Erro ao gerar PDF:", err);
+                alert('Erro ao gerar o PDF. Por favor, tente novamente.');
+            });
+        }
+    </script>
+</body>
+</html>

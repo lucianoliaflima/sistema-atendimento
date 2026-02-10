@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalhes do Ticket #{{ ticket.id }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<div class="container">
+    <h1>Detalhes do Ticket #{{ ticket.id }}</h1>
+
+    {% if ticket.status != 'closed' %}
+        <!-- UM ÚNICO FORMULÁRIO PARA TODAS AS AÇÕES DE EDIÇÃO -->
+        <form method="POST">
+            <div class="form-group">
+                <label for="tool">Ferramenta:</label>
+                <select name="tool" id="tool" required>
+                    {% set tools = ['AIMPORTAL','AIRSPACE DESIGNER','CRONOS','ETOD','FPDAM','GFEAMAN','ICE','PLX','WEPUB'] %}
+                    {% for t in tools %}
+                        <option value="{{ t }}" {% if ticket.tool == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="priority">Prioridade:</label>
+                <select name="priority" id="priority" required>
+                    <option value="Crítica" {% if ticket.priority == 'Crítica' %}selected{% endif %}>Crítica</option>
+                    <option value="Grave" {% if ticket.priority == 'Grave' %}selected{% endif %}>Grave</option>
+                    <option value="Moderada" {% if ticket.priority == 'Moderada' %}selected{% endif %}>Moderada</option>
+                    <option value="Baixo" {% if ticket.priority == 'Baixo' %}selected{% endif %}>Baixo</option>
+                </select>
+            </div>
+            
+            <!-- Outros campos editáveis -->
+            <p><strong>CSR:</strong> <input type="text" name="csr" value="{{ ticket.csr or '' }}"></p>
+            <p><strong>Nome de Usuário:</strong> <input type="text" name="username" value="{{ ticket.username }}" required></p>
+            <p><strong>Assunto:</strong> <input type="text" name="subject" value="{{ ticket.subject }}" required></p>
+            <p><strong>Descrição:</strong> <textarea name="description" rows="4" required>{{ ticket.description }}</textarea></p>
+
+            <!-- BOTÕES DE AÇÃO -->
+            <div class="form-actions">
+                <!-- O botão Salvar agora usa formaction para apontar para a rota de edição -->
+                <button type="submit" class="btn btn-primary" formaction="{{ url_for('edit_ticket', ticket_id=ticket.id) }}">Salvar Alterações</button>
+                
+                <!-- O botão Fechar aponta para a rota de fechamento -->
+                <button type="submit" class="btn btn-danger" formaction="{{ url_for('close_ticket', ticket_id=ticket.id) }}" onclick="return confirm('Tem certeza que deseja fechar este ticket?');">Fechar Atendimento</button>
+            </div>
+        </form>
+    {% else %}
+        <!-- MODO DE VISUALIZAÇÃO PARA TICKETS FECHADOS -->
+        <p><strong>Ferramenta:</strong> {{ ticket.tool }}</p>
+        <p><strong>Prioridade:</strong> {{ ticket.priority }}</p>
+        <!-- ... outros campos ... -->
+        <form action="{{ url_for('reopen_ticket', ticket_id=ticket.id) }}" method="POST">
+            <button type="submit" class="btn btn-info">Reabrir Atendimento</button>
+        </form>
+    {% endif %}
+
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Voltar para a Lista</a>
+    
+    <!-- Seção de comentários e anexos continua aqui... -->
+</div>
+</body>
+</html>

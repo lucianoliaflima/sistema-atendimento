@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhamento de Tickets</title>
+    <!-- Adicionando o Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Adicionando o Chart.js Data Labels -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            width: 100%;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .charts-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .chart-wrapper {
+            width: 30%;
+            min-width: 250px;
+            margin: 10px;
+        }
+        .filters-container {
+            width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+            margin-bottom: 15px;
+            padding: 10px 0;
+            background: #fff;
+            border-bottom: 2px solid #ddd;
+        }
+        .filters {
+            display: inline-flex;
+            gap: 10px;
+            min-width: 1200px;
+            padding-bottom: 5px;
+        }
+        .filter-group {
+            display: inline-block;
+            vertical-align: top;
+            min-width: 200px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .filter-group summary {
+            cursor: pointer;
+            font-weight: bold;
+            padding: 5px;
+        }
+        .filter-group details[open] .checkbox-container {
+            max-height: 150px;
+            overflow-y: auto;
+            padding-top: 5px;
+        }
+        .filter-group label {
+            display: block;
+            margin: 5px 0;
+        }
+        .filters input[type="date"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-width: 200px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background-color: #fff;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="button">Voltar</a>
+        <h1>Acompanhamento de Tickets</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <p class="message" style="color: {{ 'red' if category == 'error' else 'orange' if category == 'warning' else 'green' }}">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <button id="exportButton" class="button" onclick="exportTableToExcel('ticketsTable')">Exportar para Excel</button>
+
+
+        <!-- Container para os gráficos -->
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <canvas id="statusChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="priorityChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="softwareChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Contêiner com rolagem horizontal para filtros -->
+        <div class="filters-container">
+            <div class="filters">
+                <div class="filter-group">
+                    <details>
+                        <summary>Ticket Id</summary>
+                        <div class="checkbox-container" id="filterTicketId"></div>
+                    </details>
+                </div>
+                <div class="filter-group">
+                    <details>
+                        <summary>Subject</summary>
+                        <div class="checkbox-container" id="filterSubject"></div>
+                    </details>
+                </div>
+                <div class="filter-group">
+                    <details>
+                        <summary>Status</summary>
+                        <div class="checkbox-container" id="filterStatus"></div>
+                    </details>
+                </div>
+                <div class="filter-group">
+                    <details>
+                        <summary>Priority</summary>
+                        <div class="checkbox-container" id="filterPriority"></div>
+                    </details>
+                </div>
+                <input type="date" id="filterDateStart" placeholder="Data Início">
+                <input type="date" id="filterDateEnd" placeholder="Data Fim">
+                <div class="filter-group">
+                    <details>
+                        <summary>Software Product</summary>
+                        <div class="checkbox-container" id="filterSoftwareProduct"></div>
+                    </details>
+                </div>
+                <div class="filter-group">
+                    <details>
+                        <summary>TR Workitem ID</summary>
+                        <div class="checkbox-container" id="filterTRWorkitemID"></div>
+                    </details>
+                </div>
+                <div class="filter-group">
+                    <details>
+                        <summary>CR Workitem ID</summary>
+                        <div class="checkbox-container" id="filterCRWorkitemID"></div>
+                    </details>
+                </div>
+                <div class="filter-group">
+                    <details>
+                        <summary>TRCR Status</summary>
+                        <div class="checkbox-container" id="filterTRCRStatus"></div>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Tickets -->
+        <table id="ticketsTable">
+            <thead>
+                <tr>
+                    <th>Ticket Id</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Created Time</th>
+                    <th>Last Updated Time</th>
+                    <th>Software Product</th>
+                    <th>TR Workitem ID</th>
+                    <th>CR Workitem ID</th>
+                    <th>TRCR Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in tickets %}
+                    <tr>
+                        <td>{{ ticket['Ticket Id']|default('') }}</td>
+                        <td>{{ ticket['Subject']|default('') }}</td>
+                        <td>{{ ticket['Status']|default('') }}</td>
+                        <td>{{ ticket['Priority']|default('') }}</td>
+                        <td>{{ ticket['Created Time']|default('') }}</td>
+                        <td>{{ ticket['Last Updated Time']|default('') }}</td>
+                        <td>{{ ticket['Software Product']|default('') }}</td>
+                        <td>{{ ticket['TR Workitem ID']|default('') }}</td>
+                        <td>{{ ticket['CR Workitem ID']|default('') }}</td>
+                        <td>{{ ticket['TRCR Status']|default('') }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let statusChart, priorityChart, softwareChart;
+        let cachedRows = [];
+        let timeoutId = null;
+
+        // Registrar o plugin Chart.js Data Labels
+        Chart.register(ChartDataLabels);
+
+        function initializeCharts() {
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            const ctxPriority = document.getElementById('priorityChart').getContext('2d');
+            const ctxSoftware = document.getElementById('softwareChart').getContext('2d');
+
+            statusChart = new Chart(ctxStatus, {
+                type: 'pie',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
+                options: { 
+                    responsive: true, 
+                    plugins: { 
+                        title: { display: true, text: 'Distribuição dos Tickets por Status', font: { size: 20, weight: 'bold' }, color: '#333' },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 16 },
+                                textAlign: 'left',
+                                padding: 15
+                            }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            font: { size: 14, weight: 'bold' },
+                            formatter: (value) => value,
+                            anchor: 'center',
+                            align: 'center'
+                        }
+                    }
+                }
+
+            });
+
+            priorityChart = new Chart(ctxPriority, {
+                type: 'pie',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
+                options: { 
+                    responsive: true, 
+                    plugins: { 
+                        title: { display: true, text: 'Distribuição dos Tickets por Prioridade', font: { size: 20, weight: 'bold' }, color: '#333' },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 16 },
+                                textAlign: 'left',
+                                padding: 15
+                            }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            font: { size: 14, weight: 'bold' },
+                            formatter: (value) => value,
+                            anchor: 'center',
+                            align: 'center'
+                        }
+                    }
+                }
+            });
+
+            softwareChart = new Chart(ctxSoftware, {
+                type: 'pie',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
+                options: { 
+                    responsive: true, 
+                    plugins: { 
+                        title: { display: true, text: 'Distribuição dos Tickets por Produto de Software Associado', font: { size: 20, weight: 'bold' }, color: '#333' },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 16 },
+                                textAlign: 'left',
+                                padding: 15
+                            }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            font: { size: 14, weight: 'bold' },
+                            formatter: (value) => value,
+                            anchor: 'center',
+                            align: 'center'
+                        }
+                    }
+                }
+            });
+
+            updateCharts();
+        }
+
+        function getRandomColor() {
+            return '#' + Math.floor(Math.random()*16777215).toString(16);
+        }
+
+        function updateCharts() {
+            let statusData = {};
+            let priorityData = {};
+            let softwareData = {};
+
+            cachedRows.forEach(row => {
+                if (row.element.style.display !== 'none') {
+                    let cells = row.cells;
+                    let status = cells[2];
+                    let priority = cells[3];
+                    let software = cells[6];
+
+                    statusData[status] = (statusData[status] || 0) + 1;
+                    priorityData[priority] = (priorityData[priority] || 0) + 1;
+                    softwareData[software] = (softwareData[software] || 0) + 1;
+                }
+            });
+
+            statusChart.data.labels = Object.keys(statusData);
+            statusChart.data.datasets[0].data = Object.values(statusData);
+            statusChart.data.datasets[0].backgroundColor = Object.keys(statusData).map(() => getRandomColor());
+            statusChart.update();
+
+            priorityChart.data.labels = Object.keys(priorityData);
+            priorityChart.data.datasets[0].data = Object.values(priorityData);
+            priorityChart.data.datasets[0].backgroundColor = Object.keys(priorityData).map(() => getRandomColor());
+            priorityChart.update();
+
+            softwareChart.data.labels = Object.keys(softwareData);
+            softwareChart.data.datasets[0].data = Object.values(softwareData);
+            softwareChart.data.datasets[0].backgroundColor = Object.keys(softwareData).map(() => getRandomColor());
+            softwareChart.update();
+        }
+
+        function populateFilters() {
+            const table = document.getElementById("ticketsTable");
+            const rows = table.getElementsByTagName("tr");
+
+            let filters = {
+                "filterTicketId": new Set(),
+                "filterSubject": new Set(),
+                "filterStatus": new Set(),
+                "filterPriority": new Set(),
+                "filterSoftwareProduct": new Set(),
+                "filterTRWorkitemID": new Set(),
+                "filterCRWorkitemID": new Set(),
+                "filterTRCRStatus": new Set()
+            };
+
+            // Pré-processar os dados da tabela e armazenar em cache
+            cachedRows = [];
+            for (let i = 1; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName("td");
+                const rowData = {
+                    element: rows[i],
+                    cells: [
+                        cells[0].textContent.trim(),
+                        cells[1].textContent.trim(),
+                        cells[2].textContent.trim(),
+                        cells[3].textContent.trim(),
+                        new Date(cells[4].textContent),
+                        new Date(cells[5].textContent),
+                        cells[6].textContent.trim(),
+                        cells[7].textContent.trim(),
+                        cells[8].textContent.trim(),
+                        cells[9].textContent.trim()
+                    ]
+                };
+                cachedRows.push(rowData);
+
+                filters["filterTicketId"].add(rowData.cells[0]);
+                filters["filterSubject"].add(rowData.cells[1]);
+                filters["filterStatus"].add(rowData.cells[2]);
+                filters["filterPriority"].add(rowData.cells[3]);
+                filters["filterSoftwareProduct"].add(rowData.cells[6]);
+                filters["filterTRWorkitemID"].add(rowData.cells[7]);
+                filters["filterCRWorkitemID"].add(rowData.cells[8]);
+                filters["filterTRCRStatus"].add(rowData.cells[9]);
+            }
+
+            Object.keys(filters).forEach(filterId => {
+                const filterContainer = document.getElementById(filterId);
+                filters[filterId].forEach(value => {
+                    if (value) {
+                        const label = document.createElement("label");
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        checkbox.name = filterId;
+                        checkbox.value = value;
+                        checkbox.addEventListener("change", debounceFilterTable);
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(" " + value));
+                        filterContainer.appendChild(label);
+                    }
+                });
+            });
+        }
+
+        // Função de debounce para limitar chamadas frequentes
+        function debounceFilterTable() {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(filterTable, 200); // 200ms de atraso
+        }
+
+        function filterTable() {
+            const dateStart = document.getElementById("filterDateStart").value;
+            const dateEnd = document.getElementById("filterDateEnd").value;
+            const startDate = dateStart ? new Date(dateStart) : new Date(-8640000000000000);
+            const endDate = dateEnd ? new Date(dateEnd) : new Date(8640000000000000);
+
+            // Cache dos valores selecionados
+            const selectedValues = {
+                "filterTicketId": getSelectedValues("filterTicketId"),
+                "filterSubject": getSelectedValues("filterSubject"),
+                "filterStatus": getSelectedValues("filterStatus"),
+                "filterPriority": getSelectedValues("filterPriority"),
+                "filterSoftwareProduct": getSelectedValues("filterSoftwareProduct"),
+                "filterTRWorkitemID": getSelectedValues("filterTRWorkitemID"),
+                "filterCRWorkitemID": getSelectedValues("filterCRWorkitemID"),
+                "filterTRCRStatus": getSelectedValues("filterTRCRStatus")
+            };
+
+            cachedRows.forEach(row => {
+                let showRow = true;
+                const cells = row.cells;
+
+                if (selectedValues["filterTicketId"].length > 0 && !selectedValues["filterTicketId"].includes(cells[0])) showRow = false;
+                if (selectedValues["filterSubject"].length > 0 && !selectedValues["filterSubject"].includes(cells[1])) showRow = false;
+                if (selectedValues["filterStatus"].length > 0 && !selectedValues["filterStatus"].includes(cells[2])) showRow = false;
+                if (selectedValues["filterPriority"].length > 0 && !selectedValues["filterPriority"].includes(cells[3])) showRow = false;
+                if (selectedValues["filterSoftwareProduct"].length > 0 && !selectedValues["filterSoftwareProduct"].includes(cells[6])) showRow = false;
+                if (selectedValues["filterTRWorkitemID"].length > 0 && !selectedValues["filterTRWorkitemID"].includes(cells[7])) showRow = false;
+                if (selectedValues["filterCRWorkitemID"].length > 0 && !selectedValues["filterCRWorkitemID"].includes(cells[8])) showRow = false;
+                if (selectedValues["filterTRCRStatus"].length > 0 && !selectedValues["filterTRCRStatus"].includes(cells[9])) showRow = false;
+
+                if (dateStart || dateEnd) {
+                    const createdTimeCell = cells[4];
+                    if (createdTimeCell < startDate || createdTimeCell > endDate) {
+                        showRow = false;
+                    }
+                }
+
+                row.element.style.display = showRow ? "" : "none";
+            });
+
+            updateCharts();
+        }
+
+        function getSelectedValues(filterId) {
+            const checkboxes = document.querySelectorAll(`input[name="${filterId}"]:checked`);
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            populateFilters();
+            initializeCharts();
+            document.querySelectorAll(".filters input[type='date']").forEach(input => {
+                input.addEventListener("change", debounceFilterTable);
+            });
+        });
+
+        // Função para exportação de tabela para Excel
+        function exportTableToExcel(tableId) {
+            const wb = XLSX.utils.table_to_book(document.getElementById(tableId), { sheet: "Tickets" });
+            XLSX.writeFile(wb, 'tickets.xlsx');
+        }
+    </script>
+</body>
+</html>

@@ -72,31 +72,26 @@
         .register-link a:hover {
             text-decoration: underline;
         }
-
-        
-
     </style>
 </head>
 <body>
     <div class="login-container">
         <h1>Login</h1>
-        
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <p class="{{ category }}">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-    <form method="POST">
-        <label for="username">Usuário:</label>
-        <input type="text" id="username" name="username" required>
-        <label for="password">Senha:</label>
-        <input type="password" id="password" name="password" required>
-        <button type="submit">Login</button>
-    </form>
-    <p>Esqueceu a senha? <a href="{{ url_for('reset_password_request') }}">Redefinir Senha</a></p>
-    <p>Não tem uma conta? <a href="{{ url_for('register') }}">Registrar</a></p>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-messages {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST" action="{{ url_for('login') }}">
+            <input type="text" name="username" placeholder="Usuário" required>
+            <input type="password" name="password" placeholder="Senha" required>
+            <button type="submit">Entrar</button>
+        </form>
+        <div class="register-link">
+            <p>Não tem conta? <a href="{{ url_for('register') }}">Criar Usuário</a></p>
+        </div>
+    </div>
 </body>
 </html>
