@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Tickets</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        input, select {
+            margin-bottom: 10px;
+            padding: 5px;
+            font-size: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        a {
+            text-decoration: none;
+            color: #333;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 10px;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background-color: #4cae4c;
+        }
+        .chart-container {
+            width: 80%;
+            margin: auto;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lista de Tickets</h1>
+    <a href="{{ url_for('new_ticket') }}" class="btn">Novo Ticket</a>
+    <a href="{{ url_for('relatorio_ferramentas_page') }}" class="btn">Resumo</a>
+    <a href="{{ url_for('lista_csr') }}" class="btn">Lista CSR</a>
+    <form method="GET" action="{{ url_for('index') }}">
+        <!-- ... o restante do formulário ... -->
+    </form>
+
+    <!-- Tabela de Tickets -->
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuário</th>
+                <th>Ferramenta</th>
+                <th>Assunto</th>
+                <th>Status</th>
+                <th>Data de Criação</th>
+                <th>Ações</th>
+		<th>CSR</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+            <tr>
+                <td>{{ ticket.id }}</td>
+		<td>{{ ticket.csr }}</td>  <!-- Certifique-se de acessar corretamente o campo CSR -->
+                <td>{{ ticket.username }}</td>
+                <td>{{ ticket.tool }}</td>
+                <td>{{ ticket.subject }}</td>
+                <td>{{ ticket.status }}</td>
+                <td>{{ ticket.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+ 		
+    
+                <td>
+                    <a href="{{ url_for('ticket_details', ticket_id=ticket.id) }}">Detalhes</a> |
+                    <a href="{{ url_for('ticket_details', ticket_id=ticket.id) }}/close" onclick="return confirm('Tem certeza que deseja fechar este ticket?')">Fechar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="chart-container">
+        <canvas id="statusChart"></canvas>
+    </div>
+
+    <script>
+        var statusLabels = ['Aberto', 'Fechado'];
+        var statusData = [{{ open_tickets }}, {{ closed_tickets }}];
+        var statusColors = ['#36a2eb', '#ff6384'];
+
+        var ctx = document.getElementById('statusChart').getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: statusColors
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                legend: {
+                    position: 'top',
+                },
+                plugins: {
+                    datalabels: {
+                        formatter: (value, ctx) => {
+                            let sum = 0;
+                            let dataArr = ctx.chart.data.datasets[0].data;
+                            dataArr.map(data => {
+                                sum += data;
+                            });
+                            let percentage = (value * 100 / sum).toFixed(2) + "%";
+                            return percentage;
+                        },
+                        color: '#fff',
+                        font: {
+                            weight: 'bold'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

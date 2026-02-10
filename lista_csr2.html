@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de CSR</title>
+    <script>
+        // Função para ordenar a tabela do mais novo para o mais antigo com base nos últimos 9 caracteres da title
+        function sortTable() {
+            const table = document.querySelector('table');
+            const tbody = table.getElementsByTagName('tbody')[0];
+            const rows = Array.from(tbody.getElementsByTagName('tr'));
+
+            rows.sort((a, b) => {
+                const dateA = a.cells[1].textContent.slice(-9); // Últimos 9 caracteres da title
+                const dateB = b.cells[1].textContent.slice(-9); // Últimos 9 caracteres da title
+                return new Date(dateB) - new Date(dateA); // Ordena do mais novo para o mais antigo
+            });
+
+            // Remover linhas existentes e adicionar as ordenadas
+            while (tbody.firstChild) {
+                tbody.removeChild(tbody.firstChild);
+            }
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        // Função para selecionar CSR
+        function selectCSR(value) {
+            window.opener.setCSRValue(value);
+            window.close();
+        }
+
+        // Chamar a função de ordenação ao carregar a página
+        window.onload = sortTable;
+    </script>
+</head>
+<body>
+    <h1>Lista de CSR</h1>
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Descrição</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr onclick="selectCSR('{{ row['title'][-9:] }}')">
+                <td>
+                    <ul>
+                        <li class="ticket">
+                            <p><strong>Número:</strong> {{ row['id'] }}</p>
+                            <a href="https://idsairnav.freshdesk.com/en/support/tickets/{{ row['id'] }}">{{ row['title'] }}</a>
+                            <p><strong>Descrição:</strong> {{ row['description']|default('') }}</p>
+                            <p class="created_by"><strong>Created by:</strong> {{ row['created_by']|default('') }}</p>
+                            <p class="opened_date"><strong>Date:</strong> {{ row['Created Time']|format_datetime }}</p>
+                            <p class="agent"><strong>Agent:</strong> {{ row['agent']|default('') }}</p>
+                            <p class="status"><strong>Status:</strong> {{ row['Status'] }}</p>
+                        </li>
+                    </ul>
+                </td>
+                <td>{{ row['title'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

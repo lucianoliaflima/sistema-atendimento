@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Ferramentas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Bibliotecas para exportação -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .chart-container {
+            width: 80%;
+            margin: 20px auto;
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filter-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .export-container {
+            text-align: center;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px auto;
+            background-color: white;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .highlight {
+            color: red;
+        }
+        @media (max-width: 768px) {
+            .chart-container, table {
+                width: 100%;
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Relatório de Ferramentas</h1>
+    
+    <div class="filter-container">
+        <form method="GET" action="{{ url_for('index') }}">
+            <label for="start_date">Data de Início:</label>
+            <input type="date" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+            <label for="end_date">Data de Fim:</label>
+            <input type="date" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+            <button type="submit" class="btn">Filtrar</button>
+        </form>
+    </div>
+
+    <!-- Botões de exportação -->
+    <div class="export-container">
+        <button onclick="exportDashboardPNG()">📥 Exportar como PNG</button>
+        <button onclick="exportDashboardPDF()">📥 Exportar como PDF</button>
+    </div>
+
+    <!-- Conteúdo que será exportado -->
+    <div id="dashboard-content">
+        <div class="chart-container"><canvas id="myChart"></canvas></div>
+        <div class="chart-container"><canvas id="pieChart"></canvas></div>
+        <div class="chart-container"><canvas id="statusChart"></canvas></div>
+        <div class="chart-container"><canvas id="ticketCountsChart"></canvas></div>
+        <div class="chart-container"><canvas id="stackedBarChart"></canvas></div>
+        <div class="chart-container"><canvas id="slaAcumuladoChart"></canvas></div>
+
+        <!-- Tabela para CRONOS -->
+        <h2>CRONOS</h2>
+        <table>
+            <thead>
+                <tr><th>Prioridade</th><th>Total</th><th>SLA</th></tr>
+            </thead>
+            <tbody>
+                {% set cronos_tickets = tickets | selectattr('tool', 'equalto', 'CRONOS') | list %}
+                {% set totals = {'Crítica': 0, 'Grave': 0, 'Moderada': 0, 'Baixo': 0} %}
+                {% for ticket in cronos_tickets %}
+                    {% if ticket.created_at %}
+                        {% if ticket.status == 'closed' and ticket.closed_at %}
+                            {% set total_days = (ticket.closed_at - ticket.created_at).days %}
+                        {% elif ticket.status == 'open' %}
+                            {% set current_date = '2025-07-10 13:27:00-03:00' | strptime('%Y-%m-%d %H:%M:%S%z') %}
+                            {% set total_days = (current_date - ticket.created_at).days %}
+                        {% else %}
+                            {% set total_days = 0 %}
+                        {% endif %}
+                        {% if ticket.priority in totals %}
+                            {% set _ = totals.update({ticket.priority: totals[ticket.priority] + total_days}) %}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                {% for priority in ['Crítica', 'Grave', 'Moderada', 'Baixo'] %}
+                <tr>
+                    <td>{{ priority }}</td>
+                    <td>{{ totals[priority] }}</td>
+                    <td>
+                        {% if priority == 'Baixo' %} N/A
+                        {% elif priority == 'Crítica' and totals[priority] <= 1 %} Dentro SLA
+                        {% elif priority == 'Crítica' and totals[priority] > 1 %} <span class="highlight">Fora SLA</span>
+                        {% elif priority == 'Grave' and totals[priority] <= 2 %} Dentro SLA
+                        {% elif priority == 'Grave' and totals[priority] > 2 %} <span class="highlight">Fora SLA</span>
+                        {% elif priority == 'Moderada' and totals[priority] <= 4 %} Dentro SLA
+                        {% elif priority == 'Moderada' and totals[priority] > 4 %} <span class="highlight">Fora SLA</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // ===== FUNÇÕES DE EXPORTAÇÃO =====
+        function exportDashboardPNG() {
+            const content = document.getElementById("dashboard-content");
+            html2canvas(content, { backgroundColor: "#fff", scale: 2 }).then(canvas => {
+                const link = document.createElement("a");
+                link.href = canvas.toDataURL("image/png", 1);
+                link.download = "dashboard.png";
+                link.click();
+            });
+        }
+
+        function exportDashboardPDF() {
+            const content = document.getElementById("dashboard-content");
+            const opt = {
+                margin:       0.5,
+                filename:     'dashboard.pdf',
+                image:        { type: 'jpeg', quality: 1 },
+                html2canvas:  { backgroundColor: "#fff", scale: 2 },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(content).save();
+        }
+
+        // ===== EXEMPLOS DE GRÁFICOS =====
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: {{ ferramentas | tojson }},
+                    datasets: [{
+                        label: 'Abertos',
+                        data: {{ abertos | tojson }},
+                        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Fechados',
+                        data: {{ fechados | tojson }},
+                        backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true } } }
+            });
+
+            // Exemplo simples SLA acumulado
+            new Chart(document.getElementById('slaAcumuladoChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Dentro SLA', 'Fora SLA'],
+                    datasets: [{
+                        data: [100, 0],
+                        backgroundColor: ['#4CAF50', '#FFC107'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '80%',
+                    plugins: { legend: { display: false } }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

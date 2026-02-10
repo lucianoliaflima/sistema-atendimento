@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Atendimentos por Ferramenta</title>
+    <!-- Incluir dependências necessárias -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div style="width: 60%; margin: auto;">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/relatorio_ferramentas')
+                .then(response => response.json())
+                .then(data => {
+                    const ferramentas = data.map(item => item.ferramenta);
+                    const abertos = data.filter(item => item.status === 'open').map(item => item.quantidade);
+                    const fechados = data.filter(item => item.status === 'closed').map(item => item.quantidade);
+
+                    const ctx = document.getElementById('myChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ferramentas,
+                            datasets: [{
+                                label: 'Abertos',
+                                data: abertos,
+                                backgroundColor: 'rgba(54, 162, 235, 0.8)'
+                            }, {
+                                label: 'Fechados',
+                                data: fechados,
+                                backgroundColor: 'rgba(255, 99, 132, 0.8)'
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                yAxes: [{
+                                    ticks: {
+                                        beginAtZero: true
+                                    }
+                                }]
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar dados:', error);
+                });
+        });
+    </script>
+</body>
+</html>

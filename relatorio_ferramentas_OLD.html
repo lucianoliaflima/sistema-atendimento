@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Ferramentas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .chart-container {
+            display: inline-block;
+            width: 45%;
+            margin: 10px;
+        }
+        .chart-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 100px;
+        }
+        .chart-container.pie-chart {
+            width: 300px;
+            height: 300px;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .sla-dentro {
+            color: green;
+        }
+        .sla-fora {
+            color: red;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 5px;
+            margin: 20px 10px;
+            font-size: 12px;
+            color: #fff;
+            background-color: #007bff;
+            text-decoration: none;
+            border-radius: 5px;
+            text-align: center;
+            width: 100px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        #lineChart {
+            width: 100%;
+            height: 400px;
+        }
+        #chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        #lineChartClosed, #slaChartClo, #slaChartGeral {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .filter-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .filter-container label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .filter-container input {
+            padding: 5px;
+            margin-right: 10px;
+	}	
+	.pdf-page {
+            page-break-before: always;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .pdf-page:first-child {
+            page-break-before: auto;
+        }
+        .charts-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 20px 0;
+        }
+        .chart-container {
+            width: 45%;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="button">Voltar</a>
+    <button class="button" onclick="exportToPDF()">Exportar PDF</button>
+    <div class="filter-container">
+        <label for="startDate">Data Início:</label>
+        <input type="date" id="startDate">
+        <label for="endDate">Data Fim:</label>
+        <input type="date" id="endDate">
+        <button class="button" onclick="applyDateFilter()">Filtrar</button>
+    </div>
+    <h1>Relatório de Ferramentas</h1>
+    
+    <div class="chart-wrapper">
+        <div class="chart-container"><canvas id="myChart"></canvas></div>
+        <div class="chart-container"><canvas id="myChartCsr"></canvas></div>
+        <div class="chart-container"><canvas id="lineChart"></canvas></div>
+        <div class="chart-container"><canvas id="lineChartClosed"></canvas></div>
+        <div class="chart-container"><canvas id="slaChartClo"></canvas></div>
+        <div class="chart-container"><canvas id="slaChartGeral"></canvas></div>
+        <div class="chart-container pie-chart"><canvas id="ticketCountsChart"></canvas></div>
+        <div class="chart-container pie-chart"><canvas id="slaChartId"></canvas></div>
+        <div class="chart-container pie-chart"><canvas id="slaChartCsr"></canvas></div>
+    </div>
+
+    <script>
+        let charts = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCharts();
+
+            function createBarChart(ctx, labels, datasets, options) {
+                return new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: labels, datasets: datasets },
+                    options: { 
+                        ...options,
+                        plugins: { title: { display: true, text: options.title || 'Título do Gráfico' } }
+                    }
+                });
+            }
+
+            function createLineChart(ctx, labels, datasets, options) {
+                return new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: labels, datasets: datasets },
+                    options: options
+                });
+            }
+
+            function loadCharts(startDate = '', endDate = '') {
+                const urlParams = startDate && endDate ? `?start=${startDate}&end=${endDate}` : '';
+                Object.keys(charts).forEach(key => charts[key]?.destroy());
+
+                fetch(`/relatorio_ferramentas${urlParams}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length) {
+                            const ctx = document.getElementById('myChart').getContext('2d');
+                            charts.myChart = createBarChart(ctx, data.map(item => item.ferramenta), [
+                                { label: 'Abertos', data: data.map(item => item.abertos), backgroundColor: 'rgba(54, 162, 235, 0.5)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 },
+                                { label: 'Fechados', data: data.map(item => item.fechados), backgroundColor: 'rgba(255, 99, 132, 0.5)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }
+                            ], { title: 'Gráfico de Colunas por Ferramenta', scales: { y: { beginAtZero: true } } });
+                        }
+                    })
+                    .catch(error => console.error('Erro ao obter dados:', error));
+
+                fetch(`/relatorio_ferramentas_csr${urlParams}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Dados CSR:', data); // Log para depuração
+                        if (data.length) {
+                            const ctx = document.getElementById('myChartCsr').getContext('2d');
+                            charts.myChartCsr = createBarChart(ctx, data.map(item => item.ferramenta), [
+                                { label: 'Abertos', data: data.map(item => item.abertos), backgroundColor: 'rgba(54, 162, 235, 0.5)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 },
+                                { label: 'Fechados', data: data.map(item => item.fechados), backgroundColor: 'rgba(255, 99, 132, 0.5)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }
+                            ], { title: 'Gráfico de Colunas CSR por Ferramenta', scales: { y: { beginAtZero: true } } });
+                        } else {
+                            console.warn('Nenhum dado retornado para o gráfico CSR');
+                        }
+                    })
+                    .catch(error => console.error('Erro ao obter dados CSR:', error));
+
+                fetch(`/ticket_counts_chart${urlParams}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.labels && data.values) {
+                            const ctx = document.getElementById('ticketCountsChart').getContext('2d');
+                            charts.ticketCountsChart = new Chart(ctx, {
+                                type: 'pie',
+                                data: { labels: data.labels, datasets: [{ data: data.values, backgroundColor: data.colors }] },
+                                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Contagem de Tickets e CSR', padding: { top: 10, bottom: 10 } } } }
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Erro ao obter dados:', error));
+
+                fetch(`/plot_line${urlParams}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.labels && data.csr_values && data.id_values) {
+                            const ctx = document.getElementById('lineChart').getContext('2d');
+                            charts.lineChart = createLineChart(ctx, data.labels, [
+                                { label: 'CSR', data: data.csr_values, borderColor: 'rgba(75, 192, 192, 1)', backgroundColor: 'rgba(75, 192, 192, 0.2)', borderWidth: 1, fill: false },
+                                { label: 'ID', data: data.id_values, borderColor: 'rgba(255, 99, 132, 1)', backgroundColor: 'rgba(255, 99, 132, 0.2)', borderWidth: 1, fill: false }
+                            ], { responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true }, y: { beginAtZero: true } }, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Gráfico de Linha: CSR vs ID', padding: { top: 10, bottom: 10 } } } });
+                        }
+                    })
+                    .catch(error => console.error('Erro ao obter dados:', error));
+
+                fetch(`/plot_line_closed${urlParams}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.labels && data.csr_values && data.id_values) {
+                            const ctx = document.getElementById('lineChartClosed').getContext('2d');
+                            charts.lineChartClosed = createLineChart(ctx, data.labels, [
+                                { label: 'CSR', data: data.csr_values, borderColor: 'rgba(75, 192, 192, 1)', backgroundColor: 'rgba(75, 192, 192, 0.2)', borderWidth: 1, fill: false },
+                                { label: 'ID', data: data.id_values, borderColor: 'rgba(255, 99, 132, 1)', backgroundColor: 'rgba(255, 99, 132, 0.2)', borderWidth: 1, fill: false }
+                            ], { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Gráfico de Linha Fechado', padding: { top: 10, bottom: 10 } } }, scales: { x: { beginAtZero: true }, y: { beginAtZero: true } } });
+                        }
+                    })
+                    .catch(error => console.error('Erro ao obter dados:', error));
+
+                fetch(`/sla_chart_clo${urlParams}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.tools && data.dentro_sla && data.fora_sla) {
+                            const ctx = document.getElementById('slaChartClo').getContext('2d');
+                            charts.slaChartClo = new Chart(ctx, {
+                                type: 'bar',
+                                data: { labels: data.tools, datasets: [
+                                    { label: 'Dentro do SLA (<= 2 dias)', data: data.dentro_sla, backgroundColor: 'rgba(75, 192, 192, 0.7)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1 },
+                                    { label: 'Fora do SLA (> 2 dias)', data: data.fora_sla, backgroundColor: 'rgba(255, 99, 132, 0.7)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }
+                                ]},
+                                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Gráfico de Colunas Empilhadas para SLA', padding: { top: 10, bottom: 10 } } }, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Erro ao obter dados:', error));
+
+                fetch(`/sla_chart_geral${urlParams}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.tools && data.dentro_sla && data.fora_sla) {
+                            const ctx = document.getElementById('slaChartGeral').getContext('2d');
+                            charts.slaChartGeral = new Chart(ctx, {
+                                type: 'bar',
+                                data: { labels: data.tools, datasets: [
+                                    { label: 'Dentro do SLA (<= 2 dias)', data: data.dentro_sla, backgroundColor: 'rgba(75, 192, 192, 0.7)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1 },
+                                    { label: 'Fora do SLA (> 2 dias)', data: data.fora_sla, backgroundColor: 'rgba(255, 99, 132, 0.7)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }
+                                ]},
+                                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, title: { display: true, text: 'SLA Geral', padding: { top: 10, bottom: 10 } } }, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Erro ao obter dados:', error));
+
+                fetch(`/sla_chart_clo${urlParams}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.tools && data.dentro_sla && data.fora_sla) {
+                            const ctx = document.getElementById('slaChartId').getContext('2d');
+                            charts.slaChartId = new Chart(ctx, {
+                                type: 'pie',
+                                data: {
+                                    labels: ['Dentro do SLA', 'Fora do SLA'],
+                                    datasets: [{
+                                        data: [data.dentro_sla.reduce((a, b) => a + b, 0), data.fora_sla.reduce((a, b) => a + b, 0)],
+                                        backgroundColor: ['rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'],
+                                        hoverBackgroundColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)']
+                                    }]
+                                },
+                                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Gráfico de Pizza: ID por Status' } } }
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Erro ao obter dados:', error));
+
+                fetch(`/sla_chart_clo${urlParams}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.tools && data.dentro_sla && data.fora_sla) {
+                            const ctx = document.getElementById('slaChartCsr').getContext('2d');
+                            charts.slaChartCsr = new Chart(ctx, {
+                                type: 'pie',
+                                data: {
+                                    labels: ['Dentro do SLA', 'Fora do SLA'],
+                                    datasets: [{
+                                        data: [data.dentro_sla.reduce((a, b) => a + b, 0), data.fora_sla.reduce((a, b) => a + b, 0)],
+                                        backgroundColor: ['rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'],
+                                        hoverBackgroundColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)']
+                                    }]
+                                },
+                                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Gráfico de Pizza: CSR por Status' } } }
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Erro ao obter dados:', error));
+            }
+
+            window.applyDateFilter = function() {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                if (!startDate || !endDate) {
+                    alert('Por favor, selecione as datas de início e fim.');
+                    return;
+                }
+                if (new Date(startDate) > new Date(endDate)) {
+                    alert('A data de início não pode ser maior que a data de fim.');
+                    return;
+                }
+
+                loadCharts(startDate, endDate);
+            };
+
+            window.exportToPDF = function() {
+                Object.values(charts).forEach(chart => chart.update());
+
+                const element = document.querySelector('.chart-wrapper');
+                const opt = {
+                    margin: 0.5,
+                    filename: 'Dashboard_Atendimento.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'in', format: 'a3', orientation: 'landscape' },
+		    pagebreak:    { mode: 'avoid-all', before: '.pdf-page' }
+                };
+
+                html2pdf().set(opt).from(element).save();
+            };
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novo Ticket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+            font-size: 16px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input, select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        /* Campo Assunto como textarea */
+        #subject {
+            width: calc(200% - 22px); /* 2x a largura base */
+            max-width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            font-size: 14px;
+            min-height: 40px;
+            resize: vertical;
+            overflow: auto;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 30px; /* Fonte do texto digitado em 14px */
+        }
+        /* Campo Descrição */
+        #description {
+            width: calc(300% - 22px);
+            max-width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            min-height: 100px;
+            resize: vertical;
+            overflow: auto;
+            font-size: 30px; /* Fonte do texto digitado em 14px */
+        }
+        input[type="submit"] {
+            width: auto;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        input[type="submit"]:hover {
+            background-color: #4cae4c;
+        }
+        .alert {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .alert-success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 5px;
+            margin: 20px 0;
+            font-size: 12px;
+            color: #fff;
+            background-color: #007bff;
+            text-decoration: none;
+            border-radius: 5px;
+            text-align: center;
+            width: 50px;
+        }
+        .alert-error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="button">Voltar</a>
+    <h1>Novo Ticket</h1>
+
+    <!-- Exibir mensagens flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('new_ticket') }}" method="POST" enctype="multipart/form-data">
+        <label for="username">Usuário:</label>
+        <input type="text" id="username" name="username" value="{{ username }}" readonly required><br><br>
+
+        <label for="tool">Ferramenta:</label>
+        <select id="tool" name="tool" required>
+            <option value="" disabled selected>Selecione uma ferramenta</option>
+            <option value="CRONOS">CRONOS</option>
+            <option value="PLX">PLX</option>
+            <option value="ICE">ICE</option>
+            <option value="WEPUB">WEPUB</option>
+            <option value="GEOMÉDIA">GEOMÉDIA</option>
+            <option value="AIMPORTAL">AIMPORTAL</option>
+            <option value="GFEAMEN">GFEAMEN</option>
+        </select><br><br>
+
+        <label for="subject">Assunto:</label>
+        <textarea id="subject" name="subject" required></textarea><br><br>
+
+        <label for="description">Descrição:</label>
+        <textarea id="description" name="description" required></textarea><br><br>
+
+        <label for="csr">CSR:</label>
+        <input type="text" id="csr" name="csr"><br><br>
+
+        <label for="files">Anexar arquivos:</label>
+        <input type="file" id="files" name="files" multiple><br><br>
+
+        <input type="submit" value="Abrir Solicitação">
+    </form>
+
+    <script>
+        // Função para ajustar a altura automaticamente
+        function autoResize(textarea) {
+            textarea.style.height = 'auto'; // Reseta a altura
+            textarea.style.height = textarea.scrollHeight + 'px'; // Ajusta ao conteúdo
+        }
+
+        // Seleciona os textareas
+        const subjectTextarea = document.getElementById('subject');
+        const descriptionTextarea = document.getElementById('description');
+
+        // Aplica o evento 'input' a ambos os textareas
+        [subjectTextarea, descriptionTextarea].forEach(textarea => {
+            // Ajusta a altura inicial ao carregar a página
+            autoResize(textarea);
+            // Ajusta a altura enquanto o usuário digita
+            textarea.addEventListener('input', function () {
+                autoResize(this);
+            });
+        });
+    </script>
+</body>
+</html>

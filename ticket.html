@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Tickets</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+            font-size: 16px; /* Aumenta o tamanho da fonte */
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .ticket {
+            background-color: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .ticket h2 {
+            margin-bottom: 10px;
+        }
+        .ticket p {
+            margin-bottom: 5px;
+        }
+        .ticket .status {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lista de Tickets</h1>
+    <div class="tickets">
+        {% for ticket in tickets %}
+        <div class="ticket">
+            <h2>{{ ticket.subject }}</h2>
+            <p><strong>Usuário:</strong> {{ ticket.username }}</p>
+            <p><strong>Ferramenta:</strong> {{ ticket.tool }}</p>
+            <p><strong>Criado em:</strong> {{ ticket.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</p>
+            <p><strong>Status:</strong> <span class="status">{{ ticket.status }}</span></p>
+            <p><strong>Descrição:</strong> {{ ticket.description }}</p>
+            <p><a href="{{ url_for('ticket_details', ticket_id=ticket.id) }}">Detalhes do Ticket</a></p>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

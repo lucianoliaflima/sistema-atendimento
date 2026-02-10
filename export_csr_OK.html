@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exibição da Planilha</title>
+    
+    <!-- Estilos do DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    
+    <!-- Biblioteca jQuery e DataTables -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            font-size: 1.2rem;
+        }
+
+        h1 {
+            text-align: center;
+            background: #4F81BD;
+            color: white;
+            margin: 0;
+            padding: 15px;
+            font-size: 2rem;
+        }
+
+        .table-container {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        table td, table th {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+            max-width: 400px;
+            word-wrap: break-word;
+        }
+
+        table td:first-child {
+            width: 24%;
+        }
+
+        table tbody tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        table tbody tr:hover {
+            background-color: #ddd;
+        }
+
+        .dataTables_wrapper {
+            width: 100%;
+            height: 100%;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 8px 16px;
+            background-color: #66CC66;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            border-radius: 5px;
+        }
+
+        .back-button:hover {
+            background-color: #4CAF50;
+        }
+
+        .recent-updates {
+            background-color: #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        /* Estilos para o botão Export e formulário */
+        .export-button {
+            position: fixed;
+            top: 20px;
+            left: 100px; /* Ajustado para ficar ao lado do botão Voltar */
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            border-radius: 5px;
+        }
+
+        .export-button:hover {
+            background-color: #0056b3;
+        }
+
+        .export-form-container {
+            display: none; /* Oculto por padrão */
+            position: fixed;
+            top: 60px;
+            left: 20px;
+            background-color: #fff;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .export-form-container input, 
+        .export-form-container select {
+            display: block;
+            margin-bottom: 10px;
+            padding: 5px;
+            width: 200px;
+        }
+
+        .export-form-container button {
+            padding: 8px 16px;
+            background-color: #66CC66;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            border-radius: 5px;
+        }
+
+        .export-form-container button:hover {
+            background-color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <h1>CSR FRESHDESK</h1>
+    
+    <button class="back-button" onclick="window.history.back()">Voltar</button>
+    <button class="export-button" onclick="toggleExportForm()">EXPORT</button>
+
+    <!-- Formulário de exportação -->
+    <div id="export-form-container" class="export-form-container">
+        <form id="export-form" action="/export_comments" method="POST">
+            <input type="text" name="csr_list" placeholder="CSRs (ex.: 202500341, 202500407)" required>
+            <select name="export_type" required>
+                <option value="all">Todos os Comentários</option>
+                <option value="last">Último Comentário</option>
+            </select>
+            <button type="submit">Exportar</button>
+        </form>
+    </div>
+
+    <div class="table-container recent-updates">
+        <h2>Atualizações Recentes</h2>
+        {% if recent_updates %}
+        <table id="recent-updates-table" class="display">
+            <thead>
+                <tr>
+                    <th>URL</th>
+                    <th>Status</th>
+                    <th>Última Atualização</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for update in recent_updates %}
+                <tr>
+                    <td><a href="{{ update['URL'] }}">{{ update['URL'] }}</a></td>
+                    <td>{{ update['Status'] }}</td>
+                    <td class="time-column">{{ update['Ultima Atualização'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>Nenhuma atualização recente encontrada.</p>
+        {% endif %}
+    </div>
+
+    <div class="table-container">
+        <h2>Lista Geral das CSRs</h2>
+        <table id="data-table" class="display">
+            <thead>
+                <tr>
+                    <th>URL</th>
+                    <th>Comentários</th>
+                    <th>Última Atualização</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>{{ row['URL'] }}</td>
+                    <td style="white-space: pre-line;">{% autoescape false %}{{ row['Comentários'] }}{% endautoescape %}</td>
+                    <td class="time-column">{{ row['Ultima Atualização'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Função para converter "4 hours" em minutos
+            function timeToMinutes(timeStr) {
+                let parts = timeStr.split(" ");
+                if (parts.length !== 2) return 0;
+
+                let num = parseInt(parts[0]);
+                let unit = parts[1].toLowerCase();
+
+                let conversion = {
+                    "minute": 1, "minutes": 1,
+                    "hour": 60, "hours": 60,
+                    "day": 1440, "days": 1440,
+                    "month": 43200, "months": 43200,
+                    "year": 525600, "years": 525600
+                };
+
+                return num * (conversion[unit] || 0);
+            }
+
+            // Adiciona uma coluna invisível para ordenação correta
+            $('#data-table tbody tr, #recent-updates-table tbody tr').each(function() {
+                let $td = $(this).find('.time-column');
+                let timeText = $td.text().trim();
+                let minutes = timeToMinutes(timeText);
+                $td.attr("data-order", minutes);
+            });
+
+            var tabela = $('#data-table, #recent-updates-table').DataTable({
+                "paging": true,
+                "searching": true,
+                "info": true,
+                "order": [[2, "asc"]],
+                "columnDefs": [
+                    { "type": "num", "targets": 2, "orderData": [2] }
+                ],
+                "lengthChange": false,
+                "autoWidth": false,
+                "scrollX": false,
+                "scrollY": false,
+                "language": {
+                    "search": "Pesquisar:",
+                    "zeroRecords": "Nenhum resultado encontrado",
+                    "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                    "infoEmpty": "Nenhum registro disponível",
+                    "infoFiltered": "(filtrado de _MAX_ registros no total)"
+                }
+            });
+
+            tabela.columns.adjust().draw();
+        });
+
+        // Função para mostrar/esconder o formulário de exportação
+        function toggleExportForm() {
+            console.log("Botão EXPORT clicado");
+            var formContainer = document.getElementById('export-form-container');
+            formContainer.style.display = formContainer.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Configuração do formulário de exportação
+        document.getElementById('export-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            console.log("Formulário enviado");
+            var form = this;
+            var formData = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log("Resposta recebida", response.status);
+                if (!response.ok) throw new Error(`Erro na exportação: ${response.status}`);
+                return response.blob();
+            })
+            .then(blob => {
+                console.log("Blob recebido, iniciando download");
+                var url = window.URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = `comentarios_csr_${formData.get('csr_list').replace(/, /g, '_')}.xls`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                toggleExportForm();
+            })
+            .catch(error => {
+                console.error("Erro ao exportar:", error.message);
+                alert('Erro ao exportar: ' + error.message);
+            });
+        });
+    </script>
+</body>
+</html>

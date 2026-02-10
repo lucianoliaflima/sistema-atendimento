@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Administração</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        table { border-collapse: collapse; width: 100%; margin-top: 1em; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .container { max-width: 1200px; margin: auto; }
+        .form-section { background-color: #f9f9f9; padding: 1.5em; border: 1px solid #ddd; margin-top: 2em; border-radius: 5px; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        input[type="text"], input[type="password"], select { padding: 8px; margin-right: 10px; }
+        button { padding: 8px 12px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 3px; }
+        .btn-delete { background-color: #dc3545; }
+        .flash { padding: 1em; margin-bottom: 1em; border-radius: 3px; }
+        .flash.success { background-color: #d4edda; color: #155724; }
+        .flash.error { background-color: #f8d7da; color: #721c24; }
+        .flash.warning { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Administração de Usuários e Permissões</h1>
+        <a href="{{ url_for('index') }}">Voltar ao Início</a> | <a href="{{ url_for('logout') }}">Sair</a>
+
+        <!-- Mensagens Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Seção de Usuários -->
+        <div class="form-section">
+            <h2>Gerenciar Usuários</h2>
+            
+            <!-- Criar Novo Usuário -->
+            <h3>Criar Novo Usuário</h3>
+            <form method="POST" action="{{ url_for('admin') }}">
+                <input type="hidden" name="action" value="create">
+                <input type="text" name="username" placeholder="Usuário" required>
+                <input type="password" name="password" placeholder="Senha" required>
+                <label><input type="checkbox" name="is_admin"> Administrador</label>
+                <button type="submit">Criar</button>
+            </form>
+
+            <!-- Lista de Usuários -->
+            <h3 style="margin-top: 2em;">Usuários Existentes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuário</th>
+                        <th>Administrador</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{% if user.is_admin %}Sim{% else %}Não{% endif %}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin') }}" style="display:inline;">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                <button type="submit" class="btn-delete" onclick="return confirm('Tem certeza que deseja excluir este usuário?');">Excluir</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ###################################################### -->
+        <!-- ## AQUI ESTÁ A SEÇÃO DE PERMISSÕES QUE ESTAVA FALTANDO ## -->
+        <!-- ###################################################### -->
+        <div class="form-section">
+            <h2>Gerenciar Permissões de URL</h2>
+
+            <!-- Adicionar Permissão -->
+            <h3>Adicionar Permissão</h3>
+            <form method="POST" action="{{ url_for('admin') }}">
+                <input type="hidden" name="action" value="add_permission">
+                <label for="user_id">Usuário:</label>
+                <select name="user_id" id="user_id" required>
+                    {% for user in users %}
+                        {% if not user.is_admin %}
+                            <option value="{{ user.id }}">{{ user.username }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+                <label for="url">URL:</label>
+                <input type="text" name="url" id="url" placeholder="/exemplo_de_url" required>
+                <button type="submit">Adicionar Permissão</button>
+            </form>
+
+            <!-- Lista de Permissões Atuais -->
+            <h3 style="margin-top: 2em;">Permissões Atuais</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuário</th>
+                        <th>URL Permitida</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for perm in permissions %}
+                    <tr>
+                        <td>{{ perm.user.username }}</td>
+                        <td>{{ perm.url }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin') }}" style="display:inline;">
+                                <input type="hidden" name="action" value="remove_permission">
+                                <input type="hidden" name="perm_id" value="{{ perm.id }}">
+                                <button type="submit" class="btn-delete">Remover</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

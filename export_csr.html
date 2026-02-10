@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Tickets - CSR FRESHDESK</title>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            background: #4F81BD;
+            color: white;
+            padding: 15px;
+            margin: 0;
+        }
+        .header-section {
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin: 0 10px 20px;
+            border-radius: 8px;
+        }
+        .counter {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        .clear-filter {
+            margin-left: 15px;
+            padding: 6px 14px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .clear-filter:hover {
+            background: #e55a5a;
+        }
+        .charts-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        .chart-wrapper {
+            flex: 1;
+            min-width: 580px;
+            max-width: 48%;
+            height: 400px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+        }
+        .chart-title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #4F81BD;
+        }
+        .table-container {
+            padding: 0 10px 40px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            word-break: break-word;
+            vertical-align: top;
+            font-size: 18px;
+        }
+        th {
+            background: #4F81BD;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .status-cell, .data-cell {
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            min-height: 70px;
+            resize: vertical;
+            font-size: 17px;
+            line-height: 1.5;
+            font-weight: bold;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .url-link {
+            display: block;
+            font-size: 18px;
+            color: #006657 !important;
+            text-decoration: none;
+            margin-bottom: 6px;
+        }
+        .titulo-link {
+            display: block;
+            font-size: 18px;
+            color: #1a73e8 !important;
+            text-decoration: none;
+            font-weight: 500;
+            margin-top: 30px;
+        }
+        .save-btn {
+            margin-top: 8px;
+            padding: 8px 14px;
+        }
+        .back-button {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            padding: 10px 18px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            background: #66CC66;
+            z-index: 100;
+        }
+        .export-button {
+            position: fixed;
+            top: 15px;
+            left: 140px;
+            padding: 10px 18px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            background: #007bff;
+            z-index: 100;
+        }
+
+        @media (max-width: 1000px) {
+            .charts-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .chart-wrapper {
+                min-width: 95%;
+                max-width: 95%;
+                height: 360px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📋 Lista de Tickets CSR - Freshdesk</h1>
+
+    <div class="header-section">
+        <div class="counter" id="status-ferramenta-counter">
+            Carregando contadores...
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <div class="chart-title">Distribuição por Ferramenta</div>
+                <canvas id="chartFerramenta"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <div class="chart-title">Distribuição por Status</div>
+                <canvas id="chartStatus"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <button class="back-button" onclick="window.history.back()">Voltar</button>
+    <button class="export-button" onclick="exportTableToXLSX()">EXPORT</button>
+
+    <div class="table-container">
+        <table id="tickets-table" class="display">
+            <thead>
+                <tr>
+                    <th>URL / Título</th>
+                    <th>Ferramenta</th>
+                    <th>Status</th>
+                    <th>Última Atualização</th>
+                    <th>Comentário</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>
+                        <a href="{{ row['URL'] }}" target="_blank" class="url-link">
+                            {{ row['URL'] | truncate(60,true,'...') }}
+                        </a>
+                        <a href="/ticket?csr={{ row['URL'] | urlencode }}" target="_blank" class="titulo-link">
+                            {{ row.get('Título') or row.get('Titulo') or 'Título não capturado' }}
+                        </a>
+                    </td>
+                    <td>
+                        {{ row.get('Suite Version') or row.get('Suite') or row.get('Ferramenta') or 'N/A' }}
+                    </td>
+                    <td class="status-cell">
+                        <strong>{{ row['Status'] or 'N/A' }}</strong>
+                    </td>
+                    <td class="data-cell">
+                        {{ row.get('Última atualização','N/A') }}
+                    </td>
+                    <td>
+                        <textarea class="comentario-textarea" data-url="{{ row['URL'] }}">
+{{ row.get('comentario','') }}
+                        </textarea>
+                        <button class="save-btn" onclick="salvarComentario(this)">Salvar</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let chartFerramenta, chartStatus;
+        let dataTable;
+
+        function updateCounter() {
+            const filtered = dataTable.rows({search:'applied'}).count();
+            const total = dataTable.rows().count();
+            let html = `<strong>Total de tickets:</strong> ${filtered}`;
+            if (filtered !== total) html += ` / ${total}`;
+            html += ` <button class="clear-filter" onclick="limparFiltros()">Limpar filtros</button>`;
+            $('#status-ferramenta-counter').html(html);
+        }
+
+        function limparFiltros() {
+            dataTable.columns().search('').draw();
+            updateCounter();
+        }
+
+        function toggleFilter(colIndex, value) {
+            if (!value) return;
+
+            const normValue = value.trim().toLowerCase();
+            console.log(`[Filtro] Clicou em: "${value}" → normalizado: "${normValue}" (coluna ${colIndex})`);
+
+            let current = dataTable.column(colIndex).search() || '';
+            let terms = current ? current.split('|').map(t => t.trim().toLowerCase()) : [];
+
+            if (terms.includes(normValue)) {
+                terms = terms.filter(t => t !== normValue);
+            } else {
+                terms.push(normValue);
+            }
+
+            // Busca OR case-insensitive com "contém" (não exato)
+            let newSearch = '';
+            if (terms.length > 0) {
+                newSearch = terms.join('|');
+            }
+
+            console.log(`[Filtro] Busca aplicada na coluna ${colIndex}: "${newSearch}"`);
+
+            // Usamos regex com flag i para case-insensitive e sem ^$ para permitir "contém"
+            dataTable.column(colIndex).search(newSearch, true, false).draw();
+            updateCounter();
+        }
+
+        function salvarComentario(btn) {
+            const textarea = btn.previousElementSibling;
+            fetch("/salvar_comentario", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ticket_url: textarea.getAttribute("data-url"),
+                    comentario: textarea.value
+                })
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    alert("Comentário salvo!");
+                    location.reload();
+                } else {
+                    alert("Erro ao salvar");
+                }
+            });
+        }
+
+        function exportTableToXLSX() {
+            const table = document.getElementById("tickets-table");
+            let dados = [];
+            dados.push(["URL", "Título", "Ferramenta", "Status", "Última Atualização", "Comentário"]);
+            const linhas = table.querySelectorAll("tbody tr");
+            linhas.forEach(linha => {
+                const cols = linha.querySelectorAll("td");
+                const links = cols[0].querySelectorAll("a");
+                const url = links[0] ? links[0].href : "";
+                let titulo = links[1] ? links[1].innerText.trim() : "";
+                titulo = titulo.replace(/\s*#\d+$/, '');
+                const ferramenta = cols[1].innerText.trim();
+                const status = cols[2].innerText.trim();
+                const ultima = cols[3].innerText.trim();
+                const comentario = cols[4].querySelector("textarea") ? cols[4].querySelector("textarea").value.trim() : "";
+                dados.push([url, titulo, ferramenta, status, ultima, comentario]);
+            });
+            const ws = XLSX.utils.aoa_to_sheet(dados);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Tickets");
+            XLSX.writeFile(wb, "tickets_freshdesk.xlsx");
+        }
+
+        function contarFrequencia(arr) {
+            return arr.reduce((acc, val) => {
+                const clean = val.replace(/<[^>]+>/g, '').trim().toLowerCase();
+                if (clean) acc[clean] = (acc[clean] || 0) + 1;
+                return acc;
+            }, {});
+        }
+
+        function criarBarChart(canvasId, labels, data, columnIndex) {
+            const paired = labels.map((label, i) => ({ label, value: data[i] }));
+            paired.sort((a, b) => b.value - a.value);
+            const sortedLabels = paired.map(p => p.label);
+            const sortedData = paired.map(p => p.value);
+
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            return new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedLabels,
+                    datasets: [{
+                        data: sortedData,
+                        backgroundColor: [
+                            '#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF',
+                            '#FF9F40', '#E7E9ED', '#C9CBCF', '#76D7C4', '#F1948A'
+                        ],
+                        borderColor: '#333',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, title: { display: true, text: 'Quantidade de Tickets' } },
+                        y: { ticks: { autoSkip: false } }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length === 0) return;
+                        const index = elements[0].index;
+                        const label = sortedLabels[index];
+                        toggleFilter(columnIndex, label);
+                    }
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            dataTable = $('#tickets-table').DataTable({
+                paging: false,
+                searching: true,
+                info: false,
+                autoWidth: false,
+                columnDefs: [
+                    { width: "32%", targets: 0 },
+                    { width: "14%", targets: 1 },
+                    { width: "10%", targets: 2 },
+                    { width: "14%", targets: 3 },
+                    { width: "30%", targets: 4 }
+                ],
+                language: {
+                    search: "🔍 Pesquisar:",
+                    zeroRecords: "Nenhum resultado encontrado"
+                },
+                initComplete: function () {
+                    const api = this.api();
+                    const total = api.rows().count();
+
+                    $('#status-ferramenta-counter').html(
+                        `<strong>Total de tickets:</strong> ${total}`
+                    );
+
+                    const ferramentaData = api.column(1).data().toArray();
+                    const statusData = api.column(2).data().toArray();
+
+                    const freqFerramenta = contarFrequencia(ferramentaData);
+                    const freqStatus = contarFrequencia(statusData);
+
+                    const labelsFerramenta = Object.keys(freqFerramenta);
+                    const valuesFerramenta = Object.values(freqFerramenta);
+
+                    const labelsStatus = Object.keys(freqStatus);
+                    const valuesStatus = Object.values(freqStatus);
+
+                    chartFerramenta = criarBarChart('chartFerramenta', labelsFerramenta, valuesFerramenta, 1);
+                    chartStatus     = criarBarChart('chartStatus',     labelsStatus,     valuesStatus,     2);
+                }
+            });
+
+            dataTable.on('draw', updateCounter);
+        });
+    </script>
+
+</body>
+</html>
