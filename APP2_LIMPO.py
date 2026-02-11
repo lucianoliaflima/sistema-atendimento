@@ -38,8 +38,9 @@ app = Flask(__name__)
 
 
 app.config['SECRET_KEY'] = 'your_secret_key'  # Substitua por uma chave segura em produção
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///E:/Python/Abertura_de_Atendimento/instance/tickets.db?timeout=10'  # Aumentado o timeout
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///E:/Python/Abertura_de_Atendimento/instance/tickets.db?timeout=10'  # Aumentado o timeout
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['UPLOAD_FOLDER'] = 'E:/Python/Abertura_de_Atendimento/instance/uploads'  # Usando caminho relativo
 
 # Criar diretório de uploads se não existir
@@ -2208,4 +2209,5 @@ if __name__ == '__main__':
             db.session.commit()
             
     # Rodando no IP e Porta solicitados
+
     app.run(host='10.32.36.194', port=5000, debug=True)
